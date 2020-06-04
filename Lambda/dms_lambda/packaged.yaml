@@ -1,0 +1,63 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: 'sam-app
+
+  Sample SAM Template for sam-app
+
+  '
+Globals:
+  Function:
+    Timeout: 3
+Resources:
+  DmsAlarmFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: s3://20200602-sambucket/628e6a28727f086a4b5303e359f35a76
+      Handler: app.lambda_handler
+      Runtime: python3.8
+      FunctionName: DmsFunction
+      Events:
+        LogGroupEvent:
+          Type: CloudWatchLogs
+          Properties:
+            FilterPattern: END
+            LogGroupName: /aws/lambda/basicPython
+  EventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: Schedule for triggering DMS tasks
+      EventBusName: default
+      Name: dmsScheduleEventBridgeRule
+      ScheduleExpression: rate(1 minute)
+      State: ENABLED
+      Targets:
+      - Arn:
+          Fn::GetAtt:
+          - DmsAlarmFunction
+          - Arn
+        Id: LambdaFunction
+        Input: '{"DmsTaskName": "DmsTask1"}'
+  LambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName:
+        Ref: DmsAlarmFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn:
+        Fn::GetAtt:
+        - EventRule
+        - Arn
+  ReplicationInstance:
+    Type: AWS::DMS::ReplicationInstance
+    Properties:
+      AllocatedStorage: 20
+      MultiAZ: false
+      PubliclyAccessible: true
+      ReplicationInstanceClass: dms.t2.micro
+      ReplicationInstanceIdentifier: MyReplicationInstance
+Outputs:
+  HelloWorldFunction:
+    Description: Hello World Lambda Function ARN
+    Value:
+      Ref: ReplicationInstance

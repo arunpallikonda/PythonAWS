@@ -1,0 +1,119 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  sam-app
+
+  Sample SAM Template for sam-app
+
+Globals:
+  Function:
+    Timeout: 3
+
+Resources:
+  DmsAlarmFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: app/
+#      CodeUri: s3://20200513mysambucket/myCode.zip
+#      CodeUri: s3://20200513mysambucket/myCode.zip
+      Handler: app.lambda_handler
+      Runtime: python3.8
+      FunctionName: 'DmsFunction'
+      Events:
+        LogGroupEvent:
+          Type: CloudWatchLogs
+          Properties:
+            FilterPattern: 'END'
+            LogGroupName: '/aws/lambda/basicPython'
+
+  EventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: "Schedule for triggering DMS tasks"
+      EventBusName: "default"
+      Name: "dmsScheduleEventBridgeRule"
+      ScheduleExpression: "rate(1 minute)"
+      State: 'ENABLED'
+      Targets:
+        - Arn: !GetAtt DmsAlarmFunction.Arn
+          Id: "LambdaFunction"
+          Input: "{\"DmsTaskName\": \"DmsTask1\"}"
+
+
+  LambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref DmsAlarmFunction
+      Action: "lambda:InvokeFunction"
+      Principal: "events.amazonaws.com"
+      SourceArn: !GetAtt EventRule.Arn
+
+
+#  MyDB1:
+#    Type: AWS::RDS::DBInstance
+#    Properties:
+#      AllocatedStorage: '5'
+#      DBInstanceClass: db.t2.micro
+#      Engine: MySQL
+#      MasterUsername: admin
+#      MasterUserPassword: adminpassword
+#      PubliclyAccessible: true
+#      DBInstanceIdentifier: MyFirstInstance
+#      BackupRetentionPeriod: 0
+#
+#  MyDB2:
+#    Type: AWS::RDS::DBInstance
+#    Properties:
+#      AllocatedStorage: '5'
+#      DBInstanceClass: db.t2.micro
+#      Engine: MySQL
+#      MasterUsername: admin
+#      MasterUserPassword: adminpassword
+#      PubliclyAccessible: true
+#      DBInstanceIdentifier: MySecondInstance
+#      BackupRetentionPeriod: 0
+
+  ReplicationInstance:
+    Type: AWS::DMS::ReplicationInstance
+    Properties:
+      AllocatedStorage: 20
+      MultiAZ: false
+      PubliclyAccessible: true
+      ReplicationInstanceClass: dms.t2.micro
+      ReplicationInstanceIdentifier: MyReplicationInstance
+
+#  DMSSourceEndpoint:
+#    Type: AWS::DMS::Endpoint
+#    Properties:
+#      DatabaseName: SourceDB
+#      EndpointIdentifier: !GetAtt MyDB1.Endpoint.Address
+#      EndpointType: source
+#      EngineName: mysql
+#      Password: adminpassword
+#      Username: admin
+#
+#  DMSTargetEndpoint:
+#    Type: AWS::DMS::Endpoint
+#    Properties:
+#      DatabaseName: TargetDB
+#      EndpointIdentifier: !GetAtt MyDB2.Endpoint.Address
+#      EndpointType: target
+#      EngineName: mysql
+#      Password: adminpassword
+#      Username: admin
+
+
+
+
+Outputs:
+  HelloWorldFunction:
+#    Description: "Hello World Lambda Function ARN"
+#    Value: !GetAtt MyDB1.Endpoint.Address
+    Description: "Hello World Lambda Function ARN"
+    Value: !Ref ReplicationInstance
+#  HelloWorldFunctionIamRole:
+#    Description: "Implicit IAM Role created for Hello World function"
+#    Value: !GetAtt HelloWorldFunctionRole.Arn
+
+
+
