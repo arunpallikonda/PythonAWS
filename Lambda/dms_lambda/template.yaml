@@ -16,7 +16,7 @@ Resources:
       CodeUri: app/
 #      CodeUri: s3://20200513mysambucket/myCode.zip
 #      CodeUri: s3://20200513mysambucket/myCode.zip
-      Handler: app.lambda_handler
+      Handler: lambda1.lambda_handler
       Runtime: python3.8
       FunctionName: 'DmsFunction'
       Events:
