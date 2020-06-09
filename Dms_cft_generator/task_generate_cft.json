@@ -1,0 +1,53 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Test CloudFormation"
+  "Parameters": {
+    "DMSReplicationTask": {
+      "Type": "AWS::DMS::ReplicationTask",
+      "Properties": {
+        "MigrationType": "full-load",
+        "ReplicationInstanceArn": {
+          "Ref": "DMSReplicationInstance"
+        },
+//        "ReplicationTaskSettings": "{ \"Logging\" : { \"EnableLogging\" : true, \"LogComponents\": [ { \"Id\" : \"SOURCE_UNLOAD\", \"Severity\" : \"LOGGER_SEVERITY_DEFAULT\" }, { \"Id\" : \"SOURCE_CAPTURE\", \"Severity\" : \"LOGGER_SEVERITY_DEFAULT\" }, { \"Id\" : \"TARGET_LOAD\", \"Severity\" : \"LOGGER_SEVERITY_DEFAULT\" }, { \"Id\" : \"TARGET_APPLY\", \"Severity\" : \"LOGGER_SEVERITY_DEFAULT\" } ] } }",
+        "SourceEndpointArn": {
+          "Ref": "SourceEndpoint"
+        },
+        "TableMappings": "{ \"rules\": [ { \"rule-type\" : \"selection\", \"rule-id\" : \"1\", \"rule-name\" : \"1\", \"object-locator\" : { \"schema-name\" : \"dms_sample\", \"table-name\" : \"%\" }, \"rule-action\" : \"include\" } ] }",
+        "TargetEndpointArn": {
+          "Ref": "TargetEndpoint"
+        }
+      },
+      "DependsOn": [
+        "AuroraSourceEndpoint",
+        "S3TargetEndpoint",
+        "DMSReplicationInstance"
+      ]
+    }
+  },
+  "Outputs": {
+    "StackName": {
+      "Value": {
+        "Ref": "AWS::StackName"
+      }
+    },
+    "RegionName": {
+      "Value": {
+        "Ref": "AWS::Region"
+      }
+    },
+    "S3BucketName": {
+      "Value": {
+        "Ref": "S3Bucket"
+      }
+    },
+    "AuroraEndpoint": {
+      "Value": {
+        "Fn::GetAtt": [
+          "AuroraCluster",
+          "Endpoint.Address"
+        ]
+      }
+    }
+  }
+}

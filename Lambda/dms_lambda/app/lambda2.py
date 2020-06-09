@@ -1,5 +1,6 @@
 import sys
-from util.dms_util import *
+from Lambda.dms_lambda.app.util.dms_util import *
+
 # from ..app.util.dms_util import *
 
 dms_util = DmsUtil()
