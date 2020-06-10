@@ -1,14 +1,14 @@
 {
   "ReplicationTaskDetails": {
     "MigrationType": "full-load",
-    "ReplicationInstanceArn": "someARN",
-    "ReplicationTaskIdentifier": "dms-auto-task"
+    "ReplicationInstanceArn": "arn:aws:dms:us-east-1:464420198474:rep:XZBYXSJCW4CCRMCU2RI3MXA62E",
+    "ReplicationTaskIdentifier": "dms-auto-task-1"
   },
   "SourceEndpointDetails": {
-    "SourceEndpointArn": "someArn"
+    "SourceEndpointArn": "arn:aws:dms:us-east-1:464420198474:endpoint:RGCPDBAJ3XDMMPNN2CKUU4MWGY"
   },
   "TargetEndpointDetails": {
-    "TargetEndpointArn": "String"
+    "TargetEndpointArn": "arn:aws:dms:us-east-1:464420198474:endpoint:FDNGRYWVM6DXVNKIHNV3PSGUVQ"
   },
   "TableMappings": {
     "rules": [

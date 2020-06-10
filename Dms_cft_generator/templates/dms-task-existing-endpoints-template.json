@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": null,
+  "Description": "DMS Cloudformation",
   "Parameters": {
     "ReplicationInstanceARN": {
       "Default": "REPLICATION_INSTANCE_ARN",
@@ -53,12 +53,12 @@
     },
     "SourceEndPoint": {
       "Value": {
-        "Ref": "SourceEndpoint"
+        "Ref": "SourceEndpointARN"
       }
     },
     "TargetEndPoint": {
       "Value": {
-        "Ref": "TargetEndpoint"
+        "Ref": "TargetEndpointARN"
       }
     }
   }

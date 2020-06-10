@@ -1,7 +1,0 @@
-{
-    "AWSTemplateFormatVersion": "2010-09-09",
-    "Description": "This CloudFormation sample template for DMSTask and DMS Endpoints Creation.A DMS task is created and configured to migrate existing data to the target endpoint.",
-    "Parameters": {},
-    "Resources": {},
-    "Outputs": {}
-}

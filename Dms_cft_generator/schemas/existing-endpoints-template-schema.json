@@ -1,0 +1,54 @@
+{
+  "type": "object",
+  "properties": {
+    "ReplicationTaskDetails": {
+      "type": "object",
+      "properties": {
+        "MigrationType": "string",
+        "ReplicationInstanceArn": "string",
+        "ReplicationTaskIdentifier": "string",
+        "required": [
+          "MigrationType",
+          "ReplicationInstanceArn",
+          "ReplicationTaskIdentifier"
+        ]
+      }
+    }
+  },
+  "SourceEndpointDetails": {
+    "SourceEndpointArn": "string",
+    "required": [
+      "SourceEndpointArn"
+    ]
+  },
+  "TargetEndpointDetails": {
+    "TargetEndpointArn": "string",
+    "required": [
+      "TargetEndpointArn"
+    ]
+  },
+  "TableMappings": {
+    "rules": [
+      {
+        "rule-type": "string",
+        "rule-id": "string",
+        "rule-name": "string",
+        "object-locator": {
+          "schema-name": "string",
+          "table-name": "string",
+          "required": [
+            "schema-name",
+            "table-name"
+          ]
+        },
+        "rule-action": "string",
+        "required": [
+          "rule-type",
+          "rule-id",
+          "rule-name",
+          "rule-action"
+        ]
+      }
+    ]
+  }
+}
