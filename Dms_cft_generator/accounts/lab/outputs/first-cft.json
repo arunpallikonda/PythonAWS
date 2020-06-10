@@ -1,0 +1,65 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "DMS Cloudformation",
+  "Parameters": {
+    "ReplicationInstanceARN": {
+      "Default": "arn:aws:dms:us-east-1:464420198474:rep:XZBYXSJCW4CCRMCU2RI3MXA62E",
+      "NoEcho": "false",
+      "Description": "Enter ARN of Replication Instance to be used",
+      "Type": "String"
+    },
+    "SourceEndpointARN": {
+      "Default": "arn:aws:dms:us-east-1:464420198474:endpoint:RGCPDBAJ3XDMMPNN2CKUU4MWGY",
+      "NoEcho": "false",
+      "Description": "Enter ARN of Source End Point",
+      "Type": "String"
+    },
+    "TargetEndpointARN": {
+      "Default": "arn:aws:dms:us-east-1:464420198474:endpoint:FDNGRYWVM6DXVNKIHNV3PSGUVQ",
+      "NoEcho": "false",
+      "Description": "Enter ARN of Target End Point",
+      "Type": "String"
+    }
+  },
+  "Resources": {
+    "ReplicationTask": {
+      "Type": "AWS::DMS::ReplicationTask",
+      "Properties": {
+        "SourceEndpointArn": {
+          "Ref": "SourceEndpointARN"
+        },
+        "TargetEndpointArn": {
+          "Ref": "TargetEndpointARN"
+        },
+        "ReplicationInstanceArn": {
+          "Ref": "ReplicationInstanceARN"
+        },
+        "ReplicationTaskIdentifier": "dms-auto-task-1",
+        "MigrationType": "full-load",
+        "TableMappings": "{\"rules\": [{\"rule-type\": \"selection\", \"rule-id\": \"1\", \"rule-name\": \"1\", \"object-locator\": {\"schema-name\": \"Test\", \"table-name\": \"%\"}, \"rule-action\": \"include\"}]}"
+      }
+    }
+  },
+  "Outputs": {
+    "StackName": {
+      "Value": {
+        "Ref": "AWS::StackName"
+      }
+    },
+    "RegionName": {
+      "Value": {
+        "Ref": "AWS::Region"
+      }
+    },
+    "SourceEndPoint": {
+      "Value": {
+        "Ref": "SourceEndpointARN"
+      }
+    },
+    "TargetEndPoint": {
+      "Value": {
+        "Ref": "TargetEndpointARN"
+      }
+    }
+  }
+}
