@@ -1,4 +1,5 @@
 {
+  "templateType": "EXISTING_ENDPOINTS",
   "ReplicationTaskDetails": {
     "MigrationType": "full-load",
     "ReplicationInstanceArn": "arn:aws:dms:us-east-1:464420198474:rep:XZBYXSJCW4CCRMCU2RI3MXA62E",

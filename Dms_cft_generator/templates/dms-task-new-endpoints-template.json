@@ -1,0 +1,79 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "DMS Cloudformation",
+  "Parameters": {
+    "ReplicationInstanceARN": {
+      "Default": "REPLICATION_INSTANCE_ARN",
+      "NoEcho": "false",
+      "Description": "Enter ARN of Replication Instance to be used",
+      "Type": "String"
+    },
+    "SourceEndpointARN": {
+      "Default": "SOURCE_ENDPOINT_ARN",
+      "NoEcho": "false",
+      "Description": "Enter ARN of Source End Point",
+      "Type": "String"
+    },
+    "TargetEndpointARN": {
+      "Default": "TARGET_ENDPOINT_ARN",
+      "NoEcho": "false",
+      "Description": "Enter ARN of Target End Point",
+      "Type": "String"
+    }
+  },
+  "Resources": {
+    "ReplicationTask": {
+      "Type": "AWS::DMS::ReplicationTask",
+      "Properties": {
+        "SourceEndpointArn": {
+          "Ref": "SourceEndpointARN"
+        },
+        "TargetEndpointArn": {
+          "Ref": "TargetEndpointARN"
+        },
+        "ReplicationInstanceArn": {
+          "Ref": "ReplicationInstanceARN"
+        },
+        "ReplicationTaskIdentifier": "{}",
+        "MigrationType": "{}",
+        "TableMappings": null
+      }
+    },
+    "SourceEndpoint": {
+      "Type": "AWS::DMS::Endpoint",
+      "Properties": {
+        "DatabaseName": String,
+        "EndpointIdentifier": "SourceEndpoint-mysql",
+        "EndpointType": "source",
+        "EngineName": "mysql",
+        "Password": "password",
+        "Port": 3306,
+        "ServerName": String,
+        "SslMode": String,
+        "Username": "admin"
+      }
+    }
+  },
+  "Outputs": {
+    "StackName": {
+      "Value": {
+        "Ref": "AWS::StackName"
+      }
+    },
+    "RegionName": {
+      "Value": {
+        "Ref": "AWS::Region"
+      }
+    },
+    "SourceEndPoint": {
+      "Value": {
+        "Ref": "SourceEndpointARN"
+      }
+    },
+    "TargetEndPoint": {
+      "Value": {
+        "Ref": "TargetEndpointARN"
+      }
+    }
+  }
+}
