@@ -7,18 +7,6 @@
       "NoEcho": "false",
       "Description": "Enter ARN of Replication Instance to be used",
       "Type": "String"
-    },
-    "SourceEndpointARN": {
-      "Default": "SOURCE_ENDPOINT_ARN",
-      "NoEcho": "false",
-      "Description": "Enter ARN of Source End Point",
-      "Type": "String"
-    },
-    "TargetEndpointARN": {
-      "Default": "TARGET_ENDPOINT_ARN",
-      "NoEcho": "false",
-      "Description": "Enter ARN of Target End Point",
-      "Type": "String"
     }
   },
   "Resources": {
@@ -26,10 +14,10 @@
       "Type": "AWS::DMS::ReplicationTask",
       "Properties": {
         "SourceEndpointArn": {
-          "Ref": "SourceEndpointARN"
+          "Ref": "SourceEndpoint"
         },
         "TargetEndpointArn": {
-          "Ref": "TargetEndpointARN"
+          "Ref": "TargetEndpoint"
         },
         "ReplicationInstanceArn": {
           "Ref": "ReplicationInstanceARN"
@@ -42,14 +30,24 @@
     "SourceEndpoint": {
       "Type": "AWS::DMS::Endpoint",
       "Properties": {
-        "DatabaseName": String,
-        "EndpointIdentifier": "SourceEndpoint-mysql",
+        "ServerName": "sourceEndpointURL",
+        "EndpointIdentifier": "mySourceEndpoint",
         "EndpointType": "source",
         "EngineName": "mysql",
+        "Port" : 3306,
         "Password": "password",
-        "Port": 3306,
-        "ServerName": String,
-        "SslMode": String,
+        "Username": "admin"
+      }
+    },
+    "TargetEndpoint": {
+      "Type": "AWS::DMS::Endpoint",
+      "Properties": {
+        "ServerName": "targetEndpointURL",
+        "EndpointIdentifier": "myTargetEndpoint",
+        "EndpointType": "target",
+        "EngineName": "mysql",
+        "Port" : 3306,
+        "Password": "password",
         "Username": "admin"
       }
     }
@@ -67,12 +65,12 @@
     },
     "SourceEndPoint": {
       "Value": {
-        "Ref": "SourceEndpointARN"
+        "Ref": "SourceEndpoint"
       }
     },
     "TargetEndPoint": {
       "Value": {
-        "Ref": "TargetEndpointARN"
+        "Ref": "TargetEndpoint"
       }
     }
   }
