@@ -49,13 +49,22 @@ def updateEndpointDetailsInExistingEndpointsTemplate(inputJson, templateJson):
         'TargetEndpointArn']
 
 
-def deployCloudformation(templateJson):
-    cloudFormationClient = boto3.client('cloudformation', aws_access_key_id=ACCESS_KEY,
-                                        aws_secret_access_key=SECRET_KEY,
-                                        aws_session_token=SESSION_TOKEN)
-    dmsClient = boto3.client('dms', aws_access_key_id=ACCESS_KEY,
-                             aws_secret_access_key=SECRET_KEY,
-                             aws_session_token=SESSION_TOKEN)
+def deployCloudformation(templateJson, ASSUME_ROLE):
+    cloudFormationClient = boto3.client('cloudformation')
+    dmsClient = boto3.client('dms')
+    if ASSUME_ROLE:
+        print("Assuming role " + ASSUME_ROLE + " for credentials")
+        stsConnection = boto3.client('sts')
+        stsCredentials = stsConnection.assume_role(RoleArn=ASSUME_ROLE, RoleSessionName="cp-deploy-role")
+        ACCESS_KEY = stsCredentials['Credentials']['AccessKeyId']
+        SECRET_KEY = stsCredentials['Credentials']['SecretAccessKey']
+        SESSION_TOKEN = stsCredentials['Credentials']['SessionToken']
+
+        cloudFormationClient = boto3.client('cloudformation', aws_access_key_id=ACCESS_KEY,
+                                            aws_secret_access_key=SECRET_KEY, aws_session_token=SESSION_TOKEN)
+        dmsClient = boto3.client('dms', aws_access_key_id=ACCESS_KEY,
+                                 aws_secret_access_key=SECRET_KEY, aws_session_token=SESSION_TOKEN)
+
     replicationTaskIdentifier = templateJson['Resources']['ReplicationTask']['Properties'][
         'ReplicationTaskIdentifier']
     stackName = replicationTaskIdentifier + "-DMS-stack"
@@ -177,22 +186,10 @@ def updateTargetEndpointDetailsInNewEndpointsTemplate(inputJson, templateJson):
 
 
 if __name__ == '__main__':
-
-    # parser = argparse.ArgumentParser(description='Process some integers.')
-    # parser.add_argument('integers', metavar='N', type=int, nargs='+',
-    #                     help='an integer for the accumulator')
-    # parser.add_argument('--sum', dest='accumulate', action='store_const',
-    #                     const=sum, default=max,
-    #                     help='sum the integers (default: find the max)')
-    # args = parser.parse_args()
-    # print(args.accumulate(args.integers))
-
-    sts_connection = boto3.client('sts')
-    stsCredentials = sts_connection.assume_role(RoleArn="arn:aws:iam::464420198474:role/dms_role_to_assume",
-                                                RoleSessionName="cp-deploy-role")
-    ACCESS_KEY = stsCredentials['Credentials']['AccessKeyId']
-    SECRET_KEY = stsCredentials['Credentials']['SecretAccessKey']
-    SESSION_TOKEN = stsCredentials['Credentials']['SessionToken']
+    parser = argparse.ArgumentParser(description='Create Replication Task.')
+    parser.add_argument('--roleToAssume', action="store", dest="assumeRole", help='arn of the role to assume',
+                        metavar='')
+    ASSUME_ROLE = parser.parse_args().assumeRole
 
     EXISTING_ENDPOINTS_TEMPLATE_FILE = json.loads(
         open(os.path.join(BASE_DIR, "templates", "dms-task-existing-endpoints-template.json")).read())
@@ -219,7 +216,7 @@ if __name__ == '__main__':
                     with open(os.path.join(BASE_DIR, "accounts", eachAccount, "outputs", outputTemplateFileName),
                               'w') as outputFile:
                         json.dump(templateJson, outputFile)
-                    deployCloudformation(templateJson)
+                    deployCloudformation(templateJson, ASSUME_ROLE)
                 elif templateType == "NEW_ENDPOINTS":
                     templateJson = copy.deepcopy(NEW_ENDPOINTS_TEMPLATE_FILE)
                     updateReplicationTaskDetailsInTemplate(inputJson, templateJson)
@@ -230,8 +227,8 @@ if __name__ == '__main__':
                     outputTemplateFileName = str(eachInputFile.split('.')[0]) + "-cft.json"
                     with open(os.path.join(BASE_DIR, "accounts", eachAccount, "outputs", outputTemplateFileName),
                               'w') as outputFile:
-                        json.dump(templateJson, outputFile, indent=4)
-                    deployCloudformation(templateJson)
+                        json.dump(templateJson, outputFile)
+                    deployCloudformation(templateJson, ASSUME_ROLE)
                 else:
                     print("Invalid templateType. Please check inputJson: " + os.path.join(BASE_DIR, "accounts",
                                                                                           eachAccount, "inputs",
