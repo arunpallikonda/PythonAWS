@@ -227,7 +227,7 @@ if __name__ == '__main__':
                     outputTemplateFileName = str(eachInputFile.split('.')[0]) + "-cft.json"
                     with open(os.path.join(BASE_DIR, "accounts", eachAccount, "outputs", outputTemplateFileName),
                               'w') as outputFile:
-                        json.dump(templateJson, outputFile)
+                        json.dump(templateJson, outputFile, indent=4)
                     deployCloudformation(templateJson, ASSUME_ROLE)
                 else:
                     print("Invalid templateType. Please check inputJson: " + os.path.join(BASE_DIR, "accounts",
