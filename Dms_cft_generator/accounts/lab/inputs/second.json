@@ -10,14 +10,16 @@
     "SourceUrl": "aws::rds::source",
     "EngineName": "mysql",
     "Port" : 3306,
-    "Username": "admin"
+    "Username": "admin",
+    "DatabaseName": "dbName"
   },
   "TargetEndpointDetails": {
     "EndpointIdentifier": "myAutoTargetEndpoint",
     "targetUrl": "aws::rds::target",
     "EngineName": "mysql",
     "Port" : 3306,
-    "Username": "admin"
+    "Username": "admin",
+    "DatabaseName": "dbName"
   },
   "TableMappings": {
     "rules": [
