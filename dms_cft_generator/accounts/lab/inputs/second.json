@@ -9,7 +9,7 @@
     "EndpointIdentifier": "myAutoSourceEndpoint",
     "SourceUrl": "aws::rds::source",
     "EngineName": "mysql",
-    "Port" : 3306,
+    "Port": 3306,
     "Username": "admin",
     "DatabaseName": "dbName"
   },
@@ -17,9 +17,10 @@
     "EndpointIdentifier": "myAutoTargetEndpoint",
     "targetUrl": "aws::rds::target",
     "EngineName": "mysql",
-    "Port" : 3306,
+    "Port": 3306,
     "Username": "admin",
-    "DatabaseName": "dbName"
+    "DatabaseName": "dbName",
+    "SecretName": "/dmsauto/dmsauto-rds-pgdms-dmsauto_dbos"
   },
   "TableMappings": {
     "rules": [

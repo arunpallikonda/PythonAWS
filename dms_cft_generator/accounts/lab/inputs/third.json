@@ -1,0 +1,39 @@
+{
+  "templateType": "NEW_ENDPOINTS",
+  "ReplicationTaskDetails": {
+    "MigrationType": "full-load",
+    "ReplicationInstanceArn": "arn:aws:dms:us-east-1:464420198474:rep:6V4B6NMHFAN3HEDPL6ZODO6VXA",
+    "ReplicationTaskIdentifier": "dms-auto-task-2"
+  },
+  "SourceEndpointDetails": {
+    "EndpointIdentifier": "myAutoSourceEndpoint",
+    "SourceUrl": "aws::rds::source",
+    "EngineName": "mysql",
+    "Port": 3306,
+    "Username": "admin",
+    "DatabaseName": "dbName"
+  },
+  "TargetEndpointDetails": {
+    "EndpointIdentifier": "myAutoTargetEndpoint",
+    "targetUrl": "aws::rds::target",
+    "EngineName": "mysql",
+    "Port": 3306,
+    "Username": "admin",
+    "DatabaseName": "dbName",
+    "SecretName": "OracleSecret"
+  },
+  "TableMappings": {
+    "rules": [
+      {
+        "rule-type": "selection",
+        "rule-id": "1",
+        "rule-name": "1",
+        "object-locator": {
+          "schema-name": "Test",
+          "table-name": "%"
+        },
+        "rule-action": "include"
+      }
+    ]
+  }
+}
