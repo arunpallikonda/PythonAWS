@@ -34,9 +34,10 @@
         "EndpointIdentifier": "mySourceEndpoint",
         "EndpointType": "source",
         "EngineName": "mysql",
-        "Port" : 3306,
+        "Port": 3306,
         "Password": "password",
-        "Username": "admin"
+        "Username": "admin",
+        "DatabaseName": "dbName"
       }
     },
     "TargetEndpoint": {
@@ -46,9 +47,10 @@
         "EndpointIdentifier": "myTargetEndpoint",
         "EndpointType": "target",
         "EngineName": "mysql",
-        "Port" : 3306,
+        "Port": 3306,
         "Password": "password",
-        "Username": "admin"
+        "Username": "admin",
+        "DatabaseName": "dbName"
       }
     }
   },
