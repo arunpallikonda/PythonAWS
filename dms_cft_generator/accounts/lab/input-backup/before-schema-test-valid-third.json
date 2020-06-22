@@ -19,7 +19,8 @@
     "EngineName": "mysql",
     "Port": 3306,
     "Username": "admin",
-    "DatabaseName": "dbName"
+    "DatabaseName": "dbName",
+    "SecretName": "{{resolve:secretsmanager:MySecret:SecretString:password:SecretString:EXAMPLE1-90ab-cdef-fedc-ba987EXAMPLE}}"
   },
   "TableMappings": {
     "rules": [
@@ -28,6 +29,7 @@
         "rule-id": "1",
         "rule-name": "1",
         "object-locator": {
+          "schema-name": "Test",
           "table-name": "%"
         },
         "rule-action": "include"

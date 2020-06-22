@@ -11,6 +11,8 @@ import argparse
 import base64
 from botocore.exceptions import ClientError
 from dms_cft_generator.utility.credentials_util import CredentialsUtil
+from dms_cft_generator.utility.generic_util import *
+from dms_cft_generator.utility.dms_util import *
 
 BASE_DIR = os.path.abspath(os.getcwd())
 
@@ -25,14 +27,14 @@ def validateInputJson(inputJson):
     # else:
     #     print('valid json')
     # validate(instance={"type": "1","properties":{"price":{"type":1}}}, schema=existingEndpointsTemplateSchema)
-    return inputJson['templateType']
+    return True
 
 
-def updateReplicationTaskDetailsInTemplate(inputJson, templateJson):
+def updateReplicationTaskDetailsInTemplate(inputJson, templateJson, tags_dict, credentials):
     templateJson['Resources']['ReplicationTask']['Properties']['MigrationType'] = inputJson['ReplicationTaskDetails'][
         'MigrationType']
-    templateJson['Parameters']['ReplicationInstanceARN']['Default'] = inputJson['ReplicationTaskDetails'][
-        'ReplicationInstanceArn']
+    templateJson['Parameters']['ReplicationInstanceARN']['Default'] = get_appropriate_replication_instance(tags_dict,
+                                                                                                           credentials)
     templateJson['Resources']['ReplicationTask']['Properties']['ReplicationTaskIdentifier'] = \
         inputJson['ReplicationTaskDetails']['ReplicationTaskIdentifier']
 
@@ -80,7 +82,7 @@ def deployCloudformation(templateJson, session):
             break
 
 
-def updateSourceEndpointDetailsInNewEndpointsTemplate(inputJson, templateJson, credentials):
+def updateSourceEndpointDetailsInNewEndpointsTemplate(inputJson, templateJson, credentials, tags_dict):
     templateJson['Resources']['SourceEndpoint']['Properties']['ServerName'] = inputJson['SourceEndpointDetails'][
         'SourceUrl']
     templateJson['Resources']['SourceEndpoint']['Properties']['EndpointIdentifier'] = \
@@ -95,7 +97,7 @@ def updateSourceEndpointDetailsInNewEndpointsTemplate(inputJson, templateJson, c
         'DatabaseName']
 
 
-def updateTargetEndpointDetailsInNewEndpointsTemplate(inputJson, templateJson, credentials):
+def updateTargetEndpointDetailsInNewEndpointsTemplate(inputJson, templateJson, credentials, tags_dict):
     #
     templateJson['Resources']['TargetEndpoint']['Properties']['ServerName'] = inputJson['TargetEndpointDetails'][
         'targetUrl']
@@ -109,7 +111,8 @@ def updateTargetEndpointDetailsInNewEndpointsTemplate(inputJson, templateJson, c
         'Username']
     templateJson['Resources']['TargetEndpoint']['Properties']['Username'], \
     templateJson['Resources']['TargetEndpoint']['Properties'][
-        'Password'] = credentials.get_credentials_from_secrets_manager(inputJson['TargetEndpointDetails']['SecretName'])
+        'Password'] = credentials.get_credentials_from_secrets_manager(inputJson['TargetEndpointDetails']['SecretName'],
+                                                                       tags_dict)
     templateJson['Resources']['TargetEndpoint']['Properties']['DatabaseName'] = inputJson['TargetEndpointDetails'][
         'DatabaseName']
 
@@ -134,13 +137,15 @@ if __name__ == '__main__':
             shutil.rmtree(os.path.join(BASE_DIR, "accounts", eachAccount, "outputs"))
         os.makedirs(os.path.join(BASE_DIR, "accounts", eachAccount, "outputs"))
         for eachInputFile in inputFileList:
+            # TODO: change this one big try except
             try:
                 with open(os.path.join(BASE_DIR, "accounts", eachAccount, "inputs", eachInputFile)) as eachInputJson:
                     inputJson = json.load(eachInputJson)
+                    tags_dict = generate_dms_tags_dict(app_short_name="fsk", asset_id="2217")
                     templateType = validateInputJson(inputJson)
-                    if templateType == "EXISTING_ENDPOINTS":
+                    if inputJson['templateType'] and inputJson['templateType'] == "EXISTING_ENDPOINTS":
                         templateJson = copy.deepcopy(EXISTING_ENDPOINTS_TEMPLATE_FILE)
-                        updateReplicationTaskDetailsInTemplate(inputJson, templateJson)
+                        updateReplicationTaskDetailsInTemplate(inputJson, templateJson, tags_dict, credentials)
                         updateTableMappingInTemplate(inputJson, templateJson)
                         updateEndpointDetailsInExistingEndpointsTemplate(inputJson, templateJson)
 
@@ -149,17 +154,20 @@ if __name__ == '__main__':
                                   'w') as outputFile:
                             json.dump(templateJson, outputFile)
                         deployCloudformation(templateJson, credentials.get_session())
-                    elif templateType == "NEW_ENDPOINTS":
+                    elif inputJson['templateType'] == "NEW_ENDPOINTS":
                         templateJson = copy.deepcopy(NEW_ENDPOINTS_TEMPLATE_FILE)
-                        updateReplicationTaskDetailsInTemplate(inputJson, templateJson)
+                        updateReplicationTaskDetailsInTemplate(inputJson, templateJson, tags_dict, credentials)
                         updateTableMappingInTemplate(inputJson, templateJson)
-                        updateSourceEndpointDetailsInNewEndpointsTemplate(inputJson, templateJson, credentials)
-                        updateTargetEndpointDetailsInNewEndpointsTemplate(inputJson, templateJson, credentials)
+                        updateSourceEndpointDetailsInNewEndpointsTemplate(inputJson, templateJson, credentials,
+                                                                          tags_dict)
+                        updateTargetEndpointDetailsInNewEndpointsTemplate(inputJson, templateJson, credentials,
+                                                                          tags_dict)
 
                         outputTemplateFileName = str(eachInputFile.split('.')[0]) + "-cft.json"
                         with open(os.path.join(BASE_DIR, "accounts", eachAccount, "outputs", outputTemplateFileName),
                                   'w') as outputFile:
                             json.dump(templateJson, outputFile, indent=4)
+
                         deployCloudformation(templateJson, credentials.get_session())
                     else:
                         print("Invalid templateType. Please check inputJson: "

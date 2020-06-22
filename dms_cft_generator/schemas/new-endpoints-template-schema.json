@@ -1,0 +1,156 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "dms-automation-schema#",
+  "title": "DMS Automation Schema Validation",
+  "type": "object",
+  "properties": {
+    "templateType": {
+      "type": "string",
+      "enum": [
+        "NEW_ENDPOINTS"
+      ]
+    },
+    "ReplicationTaskDetails": {
+      "type": "object",
+      "properties": {
+        "MigrationType": {
+          "type": "string"
+        },
+        "ReplicationInstanceArn": {
+          "type": "string"
+        },
+        "ReplicationTaskIdentifier": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "MigrationType",
+        "ReplicationInstanceArn",
+        "ReplicationTaskIdentifier"
+      ]
+    },
+    "SourceEndpointDetails": {
+      "type": "object",
+      "properties": {
+        "EndpointIdentifier": {
+          "type": "string"
+        },
+        "SourceUrl": {
+          "type": "string"
+        },
+        "EngineName": {
+          "type": "string"
+        },
+        "Port": {
+          "type": "integer"
+        },
+        "Username": {
+          "type": "string"
+        },
+        "DatabaseName": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "EndpointIdentifier",
+        "SourceUrl",
+        "EngineName",
+        "Port",
+        "Username",
+        "DatabaseName"
+      ]
+    },
+    "TargetEndpointDetails": {
+      "type": "object",
+      "properties": {
+        "EndpointIdentifier": {
+          "type": "string"
+        },
+        "targetUrl": {
+          "type": "string"
+        },
+        "EngineName": {
+          "type": "string"
+        },
+        "Port": {
+          "type": "integer"
+        },
+        "Username": {
+          "type": "string"
+        },
+        "DatabaseName": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "EndpointIdentifier",
+        "targetUrl",
+        "EngineName",
+        "Port",
+        "Username",
+        "DatabaseName"
+      ]
+    },
+    "TableMappings": {
+      "type": "object",
+      "properties": {
+        "rules": {
+          "type": "array",
+          "items": [
+            {
+              "type": "object",
+              "properties": {
+                "rule-type": {
+                  "type": "string"
+                },
+                "rule-id": {
+                  "type": "string"
+                },
+                "rule-name": {
+                  "type": "string"
+                },
+                "object-locator": {
+                  "type": "object",
+                  "properties": {
+                    "table-name": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "required": [
+                    "table-name"
+                  ]
+                },
+                "rule-action": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "rule-type",
+                "rule-id",
+                "rule-name",
+                "object-locator"
+              ]
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "rules"
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "templateType",
+    "ReplicationTaskDetails",
+    "SourceEndpointDetails",
+    "TargetEndpointDetails",
+    "TableMappings"
+  ]
+}

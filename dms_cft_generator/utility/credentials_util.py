@@ -1,6 +1,5 @@
 import base64
 import json
-
 import boto3
 from botocore.exceptions import ClientError
 
@@ -26,7 +25,7 @@ class CredentialsUtil:
     def get_session(self):
         return self.session
 
-    def get_credentials_from_secrets_manager(self, secret_name):
+    def get_credentials_from_secrets_manager(self, secret_name, tags_dict):
         secret, username, password = [None] * 3
         # Create a Secrets Manager client
         secrets_client = self.session.client(service_name='secretsmanager')
