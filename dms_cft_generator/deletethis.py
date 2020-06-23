@@ -3,6 +3,7 @@ import jsonschema
 import json
 import os
 
+
 from jsonschema import validate
 
 BASE_DIR = os.path.abspath(os.getcwd())

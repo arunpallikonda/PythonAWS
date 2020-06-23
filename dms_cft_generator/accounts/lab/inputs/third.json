@@ -1,24 +1,25 @@
 {
-  "templateType": "NEW_ENDPOINTS",
+  "TemplateType": "NEW_ENDPOINTS",
+  "AppShortName": "fsk",
+  "AssetId": "2222",
   "ReplicationTaskDetails": {
     "MigrationType": "full-load",
-    "ReplicationInstanceArn": "arn:aws:dms:us-east-1:464420198474:rep:6V4B6NMHFAN3HEDPL6ZODO6VXA",
     "ReplicationTaskIdentifier": "dms-auto-task-2"
   },
   "SourceEndpointDetails": {
+    "RDSInstanceIdentifier": "",
     "EndpointIdentifier": "myAutoSourceEndpoint",
     "SourceUrl": "aws::rds::source",
     "EngineName": "mysql",
     "Port": 3306,
-    "Username": "admin",
     "DatabaseName": "dbName"
   },
   "TargetEndpointDetails": {
+    "RDSInstanceIdentifier": "",
     "EndpointIdentifier": "myAutoTargetEndpoint",
-    "targetUrl": "aws::rds::target",
+    "TargetUrl": "aws::rds::target",
     "EngineName": "mysql",
     "Port": 3306,
-    "Username": "admin",
     "DatabaseName": "dbName"
   },
   "TableMappings": {

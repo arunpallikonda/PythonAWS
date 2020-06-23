@@ -1,33 +1,87 @@
+import base64
 import copy
 import json
 import os
-import shutil
-import sys
 import time
-from collections import OrderedDict
-from jsonschema import validate
-import boto3
 import argparse
-import base64
+import os.path
+from os import path
+
+import boto3
 from botocore.exceptions import ClientError
-from dms_cft_generator.utility.credentials_util import CredentialsUtil
-from dms_cft_generator.utility.generic_util import *
-from dms_cft_generator.utility.dms_util import *
+from jsonschema import validate
 
 BASE_DIR = os.path.abspath(os.getcwd())
 
 
-def validateInputJson(inputJson):
-    # existingEndpointsTemplateSchema = json.loads(
-    #     open(os.path.join(BASE_DIR, "schemas", "existing-endpoints-template-schema.json")).read())
-    # try:
-    #     validate(inputJson, existingEndpointsTemplateSchema)
-    # except ...:
-    #     print('invalid json')
-    # else:
-    #     print('valid json')
-    # validate(instance={"type": "1","properties":{"price":{"type":1}}}, schema=existingEndpointsTemplateSchema)
-    return True
+class CredentialsUtil:
+    def __init__(self, **kwargs):
+        ASSUME_ROLE = kwargs.get('assume_role', None)
+        CREDENTIALS_PROFILE = kwargs.get('credentials_profile', None)
+        REGION = kwargs.get('region', None)
+
+        if CREDENTIALS_PROFILE:
+            self.session = boto3.session.Session(profile_name=CREDENTIALS_PROFILE)
+        elif ASSUME_ROLE:
+            print("Assuming role " + ASSUME_ROLE + " for credentials")
+            stsConnection = boto3.client('sts')
+            stsCredentials = stsConnection.assume_role(RoleArn=ASSUME_ROLE, RoleSessionName="dmsauto-assume-role")
+            ACCESS_KEY = stsCredentials['Credentials']['AccessKeyId']
+            SECRET_KEY = stsCredentials['Credentials']['SecretAccessKey']
+            SESSION_TOKEN = stsCredentials['Credentials']['SessionToken']
+
+            self.session = boto3.session.Session(aws_access_key_id=ACCESS_KEY, aws_secret_access_key=SECRET_KEY,
+                                                 aws_session_token=SESSION_TOKEN, region_name=REGION)
+        else:
+            self.session = boto3.Session(region_name=REGION)
+
+    def get_session(self):
+        return self.session
+
+    def get_credentials_from_secrets_manager(self, secret_name, tags_dict):
+        secret, username, password = [None] * 3
+        # Create a Secrets Manager client
+        secrets_client = self.session.client(service_name='secretsmanager')
+        try:
+            get_secret_value_response = secrets_client.get_secret_value(SecretId=secret_name)
+        except ClientError as e:
+            raise e
+        else:
+            if 'SecretString' in get_secret_value_response:
+                secret = get_secret_value_response['SecretString']
+            else:
+                secret = base64.b64decode(get_secret_value_response['SecretBinary'])
+        if secret:
+            secretJson = json.loads(secret)
+            username = secretJson['username']
+            password = secretJson['password']
+        return username, password
+
+    def get_credentials_from_pam(self):
+        return "sampleUser", "samplePassword"
+
+
+def get_appropriate_replication_instance(tags_dict, credentials: CredentialsUtil):
+    # TODO: Handle Marker logic
+    # TODO: Handle no instance found
+    try:
+        parsedDict = {}
+        defaultReplicationInstance = "arn:aws:dms:us-east-1:464420198474:rep:6V4B6NMHFAN3HEDPL6ZODO6VXA"
+        for eachDictTag in tags_dict:
+            parsedDict[eachDictTag['Key']] = eachDictTag['Value']
+        dmsClient = credentials.get_session().client('dms')
+        replicationInstanceResponse = dmsClient.describe_replication_instances()
+        for replicationInstance in replicationInstanceResponse['ReplicationInstances']:
+            tagsResponse = dmsClient.list_tags_for_resource(ResourceArn=replicationInstance['ReplicationInstanceArn'])
+            for eachTag in tagsResponse['TagList']:
+                if eachTag['Key'] == "AppShortName" and eachTag['Value'] == parsedDict['AppShortName']:
+                    defaultReplicationInstance = replicationInstance['ReplicationInstanceArn']
+        return defaultReplicationInstance
+    except Exception as e:
+        print("Failed to get appropriate replication instance with error: " + str(e))
+        # Remove this code later on
+        print("Using default ReplicationInstance: arn:aws:dms:us-east-1:464420198474:rep:6V4B6NMHFAN3HEDPL6ZODO6VXA")
+        return "arn:aws:dms:us-east-1:464420198474:rep:6V4B6NMHFAN3HEDPL6ZODO6VXA"
 
 
 def updateReplicationTaskDetailsInTemplate(inputJson, templateJson, tags_dict, credentials):
@@ -37,6 +91,7 @@ def updateReplicationTaskDetailsInTemplate(inputJson, templateJson, tags_dict, c
                                                                                                            credentials)
     templateJson['Resources']['ReplicationTask']['Properties']['ReplicationTaskIdentifier'] = \
         inputJson['ReplicationTaskDetails']['ReplicationTaskIdentifier']
+    templateJson['Resources']['ReplicationTask']['Properties']['Tags'] = tags_dict
 
 
 def updateTableMappingInTemplate(inputJson, templateJson):
@@ -70,8 +125,11 @@ def deployCloudformation(templateJson, session):
             replicationTaskArn = dmsClient.describe_replication_tasks(
                 Filters=[{'Name': 'replication-task-id', 'Values': [replicationTaskIdentifier]}])[
                 'ReplicationTasks'][0]['ReplicationTaskArn']
-            dmsClient.start_replication_task(ReplicationTaskArn=replicationTaskArn,
-                                             StartReplicationTaskType='start-replication')
+            try:
+                dmsClient.start_replication_task(ReplicationTaskArn=replicationTaskArn,
+                                                 StartReplicationTaskType='start-replication')
+            except Exception as e:
+                print("ERROR while starting replication task. Error: " + str(e))
             break
         elif stackStatus == 'CREATE_IN_PROGRESS' or stackStatus == 'UPDATE_IN_PROGRESS':
             print("Stack creation in progress. Sleeping 5secs!!!")
@@ -95,82 +153,99 @@ def updateSourceEndpointDetailsInNewEndpointsTemplate(inputJson, templateJson, c
     templateJson['Resources']['SourceEndpoint']['Properties']['Password'] = credentials.get_credentials_from_pam()
     templateJson['Resources']['SourceEndpoint']['Properties']['DatabaseName'] = inputJson['SourceEndpointDetails'][
         'DatabaseName']
+    templateJson['Resources']['SourceEndpoint']['Properties']['Tags'] = tags_dict
 
 
 def updateTargetEndpointDetailsInNewEndpointsTemplate(inputJson, templateJson, credentials, tags_dict):
     #
     templateJson['Resources']['TargetEndpoint']['Properties']['ServerName'] = inputJson['TargetEndpointDetails'][
-        'targetUrl']
+        'TargetUrl']
     templateJson['Resources']['TargetEndpoint']['Properties']['EndpointIdentifier'] = \
         inputJson['TargetEndpointDetails']['EndpointIdentifier']
     templateJson['Resources']['TargetEndpoint']['Properties']['EndpointType'] = "target"
     templateJson['Resources']['TargetEndpoint']['Properties']['EngineName'] = inputJson['TargetEndpointDetails'][
         'EngineName']
     templateJson['Resources']['TargetEndpoint']['Properties']['Port'] = inputJson['TargetEndpointDetails']['Port']
-    templateJson['Resources']['TargetEndpoint']['Properties']['Username'] = inputJson['TargetEndpointDetails'][
-        'Username']
-    templateJson['Resources']['TargetEndpoint']['Properties']['Username'], \
     templateJson['Resources']['TargetEndpoint']['Properties'][
-        'Password'] = credentials.get_credentials_from_secrets_manager(inputJson['TargetEndpointDetails']['SecretName'],
-                                                                       tags_dict)
+        'Username'] = "{{resolve:secretsmanager:OracleSecret:SecretString:password}}"
+    templateJson['Resources']['TargetEndpoint']['Properties'][
+        'Password'] = "{{resolve:secretsmanager:OracleSecret:SecretString:username}}"
     templateJson['Resources']['TargetEndpoint']['Properties']['DatabaseName'] = inputJson['TargetEndpointDetails'][
         'DatabaseName']
+    templateJson['Resources']['TargetEndpoint']['Properties']['Tags'] = tags_dict
+
+
+def generate_dms_tags_dict(app_short_name, asset_id):
+    return [{"Key": "AppShortName", "Value": app_short_name}, {"Key": "AssetId", "Value": asset_id}]
+
+
+def validate_input_json(inputJson):
+    BASE_DIR = os.path.abspath(os.getcwd())
+    if inputJson['TemplateType'] == "NEW_ENDPOINTS":
+        schemaFile = json.loads(open(os.path.join(BASE_DIR, "schemas", "new-endpoints-template-schema.json")).read())
+    else:
+        schemaFile = json.loads(open(os.path.join(BASE_DIR, "schemas", "new-endpoints-template-schema.json")).read())
+
+    try:
+        validate(instance=inputJson, schema=schemaFile)
+    except Exception as e:
+        print("Input validation failed with error: " + str(e))
+        raise e
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Create Replication Task.')
-    parser.add_argument('--roleToAssume', action="store", dest="assumeRole", help='arn of the role to assume',
+    parser.add_argument('--roleToAssume', action="store", dest="assumeRole", help='ARN of the role to assume',
                         metavar='')
+    parser.add_argument('--credentialsProfile', action="store", dest="credentialsProfile",
+                        help='AWS Credentials Profile to use', metavar='')
+    parser.add_argument('--inputJsonPath', action="store", dest="inputJsonPath", help='Path of the input JSON file',
+                        metavar='')
+    parser.add_argument('--outputPath', action="store", dest="outputPath", help='Output Path for generated CFT',
+                        metavar='')
+
     ASSUME_ROLE = parser.parse_args().assumeRole
-    credentials = CredentialsUtil(assume_role=ASSUME_ROLE, region="us-east-1")
+    CREDENTIALS_PROFILE = parser.parse_args().credentialsProfile
+    INPUT_JSON_PATH = parser.parse_args().inputJsonPath
+    OUTPUT_CFT_PATH = parser.parse_args().outputPath
 
-    EXISTING_ENDPOINTS_TEMPLATE_FILE = json.loads(
-        open(os.path.join(BASE_DIR, "templates", "dms-task-existing-endpoints-template.json")).read())
-    NEW_ENDPOINTS_TEMPLATE_FILE = json.loads(
-        open(os.path.join(BASE_DIR, "templates", "dms-task-new-endpoints-template.json")).read())
+    credentials = CredentialsUtil(assume_role=ASSUME_ROLE, credentials_profile=CREDENTIALS_PROFILE, region='us-east-1')
 
-    accounts = os.listdir(os.path.join(BASE_DIR, "accounts"))
-    for eachAccount in accounts:
-        inputFileList = os.listdir(os.path.join(BASE_DIR, "accounts", eachAccount, "inputs"))
-        # Deleting all files in outputs folder and recreating
-        if os.path.exists(os.path.join(BASE_DIR, "accounts", eachAccount, "outputs")):
-            shutil.rmtree(os.path.join(BASE_DIR, "accounts", eachAccount, "outputs"))
-        os.makedirs(os.path.join(BASE_DIR, "accounts", eachAccount, "outputs"))
-        for eachInputFile in inputFileList:
-            # TODO: change this one big try except
-            try:
-                with open(os.path.join(BASE_DIR, "accounts", eachAccount, "inputs", eachInputFile)) as eachInputJson:
-                    inputJson = json.load(eachInputJson)
-                    tags_dict = generate_dms_tags_dict(app_short_name="fsk", asset_id="2217")
-                    templateType = validateInputJson(inputJson)
-                    if inputJson['templateType'] and inputJson['templateType'] == "EXISTING_ENDPOINTS":
-                        templateJson = copy.deepcopy(EXISTING_ENDPOINTS_TEMPLATE_FILE)
-                        updateReplicationTaskDetailsInTemplate(inputJson, templateJson, tags_dict, credentials)
-                        updateTableMappingInTemplate(inputJson, templateJson)
-                        updateEndpointDetailsInExistingEndpointsTemplate(inputJson, templateJson)
+    if path.exists(INPUT_JSON_PATH):
+        try:
+            with open(INPUT_JSON_PATH) as inputFile:
+                inputJson = json.load(inputFile)
+                tags_dict = generate_dms_tags_dict(app_short_name=inputJson['AppShortName'],
+                                                   asset_id=inputJson['AssetId'])
+                validate_input_json(inputJson)
+                if inputJson['TemplateType'] == "EXISTING_ENDPOINTS":
+                    EXISTING_ENDPOINTS_TEMPLATE_FILE = json.loads(
+                        open(os.path.join(BASE_DIR, "templates", "dms-task-existing-endpoints-template.json")).read())
+                    templateJson = copy.deepcopy(EXISTING_ENDPOINTS_TEMPLATE_FILE)
+                    updateReplicationTaskDetailsInTemplate(inputJson, templateJson, tags_dict, credentials)
+                    updateTableMappingInTemplate(inputJson, templateJson)
+                    updateEndpointDetailsInExistingEndpointsTemplate(inputJson, templateJson)
 
-                        outputTemplateFileName = str(eachInputFile.split('.')[0]) + "-cft.json"
-                        with open(os.path.join(BASE_DIR, "accounts", eachAccount, "outputs", outputTemplateFileName),
-                                  'w') as outputFile:
-                            json.dump(templateJson, outputFile)
-                        deployCloudformation(templateJson, credentials.get_session())
-                    elif inputJson['templateType'] == "NEW_ENDPOINTS":
-                        templateJson = copy.deepcopy(NEW_ENDPOINTS_TEMPLATE_FILE)
-                        updateReplicationTaskDetailsInTemplate(inputJson, templateJson, tags_dict, credentials)
-                        updateTableMappingInTemplate(inputJson, templateJson)
-                        updateSourceEndpointDetailsInNewEndpointsTemplate(inputJson, templateJson, credentials,
-                                                                          tags_dict)
-                        updateTargetEndpointDetailsInNewEndpointsTemplate(inputJson, templateJson, credentials,
-                                                                          tags_dict)
+                    outputTemplateFileName = "sampleOutput" + "-cft.json"
+                    with open(os.path.join(OUTPUT_CFT_PATH, outputTemplateFileName), 'w') as outputFile:
+                        json.dump(templateJson, outputFile, indent=4)
+                    deployCloudformation(templateJson, credentials.get_session())
+                elif inputJson['TemplateType'] == "NEW_ENDPOINTS":
+                    NEW_ENDPOINTS_TEMPLATE_FILE = json.loads(
+                        open(os.path.join(BASE_DIR, "templates", "dms-task-new-endpoints-template.json")).read())
+                    templateJson = copy.deepcopy(NEW_ENDPOINTS_TEMPLATE_FILE)
+                    updateReplicationTaskDetailsInTemplate(inputJson, templateJson, tags_dict, credentials)
+                    updateTableMappingInTemplate(inputJson, templateJson)
+                    updateSourceEndpointDetailsInNewEndpointsTemplate(inputJson, templateJson, credentials, tags_dict)
+                    updateTargetEndpointDetailsInNewEndpointsTemplate(inputJson, templateJson, credentials, tags_dict)
 
-                        outputTemplateFileName = str(eachInputFile.split('.')[0]) + "-cft.json"
-                        with open(os.path.join(BASE_DIR, "accounts", eachAccount, "outputs", outputTemplateFileName),
-                                  'w') as outputFile:
-                            json.dump(templateJson, outputFile, indent=4)
-
-                        deployCloudformation(templateJson, credentials.get_session())
-                    else:
-                        print("Invalid templateType. Please check inputJson: "
-                              + os.path.join(BASE_DIR, "accounts", eachAccount, "inputs", eachInputFile))
-            except Exception as e:
-                print("Unable to deploy CFT for inputFile: " + eachInputFile + " with error: " + str(e))
+                    outputTemplateFileName = "sampleOutput-new-endpoints" + "-cft.json"
+                    with open(os.path.join(OUTPUT_CFT_PATH, outputTemplateFileName), 'w') as outputFile:
+                        json.dump(templateJson, outputFile, indent=4)
+                    deployCloudformation(templateJson, credentials.get_session())
+                else:
+                    print("Invalid templateType. Please check inputJson: " + inputJson)
+        except Exception as e:
+            print("Unable to parse inputFile: " + INPUT_JSON_PATH + ", error: " + str(e))
+    else:
+        print("Input path does not exists")

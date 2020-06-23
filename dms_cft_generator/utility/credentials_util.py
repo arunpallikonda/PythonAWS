@@ -7,9 +7,12 @@ from botocore.exceptions import ClientError
 class CredentialsUtil:
     def __init__(self, **kwargs):
         ASSUME_ROLE = kwargs.get('assume_role', None)
+        CREDENTIALS_PROFILE = kwargs.get('credentials_profile', None)
         REGION = kwargs.get('region', None)
 
-        if ASSUME_ROLE:
+        if CREDENTIALS_PROFILE:
+            self.session = boto3.session.Session(profile_name=CREDENTIALS_PROFILE)
+        elif ASSUME_ROLE:
             print("Assuming role " + ASSUME_ROLE + " for credentials")
             stsConnection = boto3.client('sts')
             stsCredentials = stsConnection.assume_role(RoleArn=ASSUME_ROLE, RoleSessionName="dmsauto-assume-role")

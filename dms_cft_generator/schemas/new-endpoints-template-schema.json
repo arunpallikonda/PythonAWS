@@ -4,19 +4,22 @@
   "title": "DMS Automation Schema Validation",
   "type": "object",
   "properties": {
-    "templateType": {
+    "TemplateType": {
       "type": "string",
       "enum": [
         "NEW_ENDPOINTS"
       ]
     },
+    "AppShortName": {
+      "type": "string"
+    },
+    "AssetId": {
+      "type": "string"
+    },
     "ReplicationTaskDetails": {
       "type": "object",
       "properties": {
         "MigrationType": {
-          "type": "string"
-        },
-        "ReplicationInstanceArn": {
           "type": "string"
         },
         "ReplicationTaskIdentifier": {
@@ -26,7 +29,6 @@
       "additionalProperties": false,
       "required": [
         "MigrationType",
-        "ReplicationInstanceArn",
         "ReplicationTaskIdentifier"
       ]
     },
@@ -45,10 +47,10 @@
         "Port": {
           "type": "integer"
         },
-        "Username": {
+        "DatabaseName": {
           "type": "string"
         },
-        "DatabaseName": {
+        "RDSInstanceIdentifier": {
           "type": "string"
         }
       },
@@ -58,7 +60,6 @@
         "SourceUrl",
         "EngineName",
         "Port",
-        "Username",
         "DatabaseName"
       ]
     },
@@ -68,7 +69,7 @@
         "EndpointIdentifier": {
           "type": "string"
         },
-        "targetUrl": {
+        "TargetUrl": {
           "type": "string"
         },
         "EngineName": {
@@ -82,15 +83,17 @@
         },
         "DatabaseName": {
           "type": "string"
+        },
+        "RDSInstanceIdentifier": {
+          "type": "string"
         }
       },
       "additionalProperties": false,
       "required": [
         "EndpointIdentifier",
-        "targetUrl",
+        "TargetUrl",
         "EngineName",
         "Port",
-        "Username",
         "DatabaseName"
       ]
     },
@@ -147,7 +150,9 @@
   },
   "additionalProperties": false,
   "required": [
-    "templateType",
+    "TemplateType",
+    "AppShortName",
+    "AssetId",
     "ReplicationTaskDetails",
     "SourceEndpointDetails",
     "TargetEndpointDetails",
