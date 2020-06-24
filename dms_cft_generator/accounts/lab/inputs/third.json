@@ -2,12 +2,12 @@
   "TemplateType": "NEW_ENDPOINTS",
   "AppShortName": "fsk",
   "AssetId": "2222",
+  "AppCode": "testCode",
   "ReplicationTaskDetails": {
     "MigrationType": "full-load",
     "ReplicationTaskIdentifier": "dms-auto-task-2"
   },
   "SourceEndpointDetails": {
-    "RDSInstanceIdentifier": "",
     "EndpointIdentifier": "myAutoSourceEndpoint",
     "SourceUrl": "aws::rds::source",
     "EngineName": "mysql",
@@ -15,7 +15,7 @@
     "DatabaseName": "dbName"
   },
   "TargetEndpointDetails": {
-    "RDSInstanceIdentifier": "",
+    "RDSInstanceIdentifier": "RDSInstanceIdentifier-1",
     "EndpointIdentifier": "myAutoTargetEndpoint",
     "TargetUrl": "aws::rds::target",
     "EngineName": "mysql",

@@ -1,0 +1,5 @@
+recursive-include utility *
+exclude utility/__pycache__ *
+recursive-include templates *
+recursive-include schemas *
+include templateGenerator.py

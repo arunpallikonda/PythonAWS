@@ -1,20 +1,18 @@
 import json
 import os
-
 from jsonschema import validate
 
 
-def generate_dms_tags_dict(app_short_name, asset_id):
-    return [{"Key": "AppShortName", "Value": app_short_name}, {"Key": "AssetId", "Value": asset_id}]
+def read_json_file(path, file):
+    current_path = os.path.abspath((os.path.dirname(file)))
+    return json.loads(open(os.path.join(current_path, path)).read())
 
 
 def validate_input_json(inputJson):
-    BASE_DIR = os.path.abspath(os.getcwd())
-    if inputJson['templateType'] == "NEW_ENDPOINTS":
-        schemaFile = json.loads(open(os.path.join(BASE_DIR, "schemas", "new-endpoints-template-schema.json")).read())
+    if inputJson['TemplateType'] == "NEW_ENDPOINTS":
+        schemaFile = read_json_file("../schemas/new-endpoints-template-schema.json", __file__)
     else:
-        schemaFile = json.loads(open(os.path.join(BASE_DIR, "schemas", "new-endpoints-template-schema.json")).read())
-
+        schemaFile = read_json_file("../schemas/existing-endpoints-template-schema.json", __file__)
     try:
         validate(instance=inputJson, schema=schemaFile)
     except Exception as e:

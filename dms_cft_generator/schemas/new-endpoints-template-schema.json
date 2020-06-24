@@ -16,6 +16,9 @@
     "AssetId": {
       "type": "string"
     },
+    "AppCode": {
+      "type": "string"
+    },
     "ReplicationTaskDetails": {
       "type": "object",
       "properties": {
@@ -48,9 +51,6 @@
           "type": "integer"
         },
         "DatabaseName": {
-          "type": "string"
-        },
-        "RDSInstanceIdentifier": {
           "type": "string"
         }
       },
@@ -94,7 +94,8 @@
         "TargetUrl",
         "EngineName",
         "Port",
-        "DatabaseName"
+        "DatabaseName",
+        "RDSInstanceIdentifier"
       ]
     },
     "TableMappings": {
@@ -153,6 +154,7 @@
     "TemplateType",
     "AppShortName",
     "AssetId",
+    "AppCode",
     "ReplicationTaskDetails",
     "SourceEndpointDetails",
     "TargetEndpointDetails",

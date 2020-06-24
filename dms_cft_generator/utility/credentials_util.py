@@ -1,7 +1,6 @@
-import base64
-import json
+import os
 import boto3
-from botocore.exceptions import ClientError
+import subprocess
 
 
 class CredentialsUtil:
@@ -28,24 +27,31 @@ class CredentialsUtil:
     def get_session(self):
         return self.session
 
-    def get_credentials_from_secrets_manager(self, secret_name, tags_dict):
-        secret, username, password = [None] * 3
-        # Create a Secrets Manager client
-        secrets_client = self.session.client(service_name='secretsmanager')
-        try:
-            get_secret_value_response = secrets_client.get_secret_value(SecretId=secret_name)
-        except ClientError as e:
-            raise e
-        else:
-            if 'SecretString' in get_secret_value_response:
-                secret = get_secret_value_response['SecretString']
-            else:
-                secret = base64.b64decode(get_secret_value_response['SecretBinary'])
-        if secret:
-            secretJson = json.loads(secret)
-            username = secretJson['username']
-            password = secretJson['password']
-        return username, password
+    def get_credentials_from_secrets_manager(self, secret_type, inputJson, parsed_tags_dict, environment):
+        # TODO: change how we build the string
+        secret_name = "/" + parsed_tags_dict['AppShortName'] + "/" + inputJson['TargetEndpointDetails'][
+            'RDSInstanceIdentifier'] + "-" + parsed_tags_dict['AppShortName'] + "_dbo" + environment
+        if secret_type == "username":
+            return "{{resolve:secretsmanager:" + secret_name + ":SecretString:username}}"
+        elif secret_type == "password":
+            return "{{resolve:secretsmanager:" + secret_name + ":SecretString:password}}"
 
-    def get_credentials_from_pam(self):
-        return "sampleUser", "samplePassword"
+    def get_credentials_from_pam(self, secret_type, app_code, db_name, environment):
+        print("Retrieving credentials from PAM")
+        print("Set app code as " + app_code)
+        os.environ["APP_CD"] = app_code
+        print("Set environment code as " + environment)
+
+        os.environ["ENV_CD"] = environment
+        if secret_type == "password":
+            # TODO: Change this hardcoded one
+            secret_name = "BB9_ORACLE_AWSDMS_" + db_name + "_ACCT"
+            # TODO: Remove this try except sending dummyValue
+            try:
+                return subprocess.check_output("/export/apps/epv/evas/capi/evascli GetPassword " + secret_name,
+                                               shell=True)
+            except Exception as e:
+                print("Unable to retrieve password from PAM. Returning default value")
+                return "dummyValue"
+        elif secret_type == "username":
+            return "dms_" + app_code
