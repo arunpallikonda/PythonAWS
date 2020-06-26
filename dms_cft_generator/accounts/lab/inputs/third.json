@@ -1,22 +1,16 @@
 {
   "TemplateType": "NEW_ENDPOINTS",
-  "AppShortName": "fsk",
-  "AssetId": "2222",
-  "AppCode": "testCode",
   "ReplicationTaskDetails": {
-    "MigrationType": "full-load",
-    "ReplicationTaskIdentifier": "dms-auto-task-2"
+    "MigrationType": "full-load"
   },
   "SourceEndpointDetails": {
-    "EndpointIdentifier": "myAutoSourceEndpoint",
-    "SourceUrl": "aws::rds::source",
+    "SourceUrl": "172.0.0.1",
     "EngineName": "mysql",
     "Port": 3306,
     "DatabaseName": "dbName"
   },
   "TargetEndpointDetails": {
     "RDSInstanceIdentifier": "RDSInstanceIdentifier-1",
-    "EndpointIdentifier": "myAutoTargetEndpoint",
     "TargetUrl": "aws::rds::target",
     "EngineName": "mysql",
     "Port": 3306,
@@ -29,6 +23,7 @@
         "rule-id": "1",
         "rule-name": "1",
         "object-locator": {
+          "schema-name": "%",
           "table-name": "%"
         },
         "rule-action": "include"

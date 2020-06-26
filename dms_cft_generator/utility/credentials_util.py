@@ -29,8 +29,8 @@ class CredentialsUtil:
 
     def get_credentials_from_secrets_manager(self, secret_type, inputJson, parsed_tags_dict, environment):
         # TODO: change how we build the string
-        secret_name = "/" + parsed_tags_dict['AppShortName'] + "/" + inputJson['TargetEndpointDetails'][
-            'RDSInstanceIdentifier'] + "-" + parsed_tags_dict['AppShortName'] + "_dbo" + environment
+        secret_name = "/" + parsed_tags_dict['ApplicationShortName'] + "/" + inputJson['TargetEndpointDetails'][
+            'RDSInstanceIdentifier'] + "-" + parsed_tags_dict['ApplicationShortName'] + "_dbo" + environment
         if secret_type == "username":
             return "{{resolve:secretsmanager:" + secret_name + ":SecretString:username}}"
         elif secret_type == "password":

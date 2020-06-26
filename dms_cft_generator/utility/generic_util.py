@@ -1,5 +1,8 @@
 import json
 import os
+import string
+import random
+
 from jsonschema import validate
 
 
@@ -18,3 +21,8 @@ def validate_input_json(inputJson):
     except Exception as e:
         print("Input validation failed with error: " + str(e))
         raise e
+
+
+def random_string(string_length):
+    letters = string.ascii_lowercase
+    return ''.join(random.choice(letters) for i in range(string_length))

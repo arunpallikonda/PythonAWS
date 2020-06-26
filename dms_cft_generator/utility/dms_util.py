@@ -4,8 +4,9 @@ from .credentials_util import CredentialsUtil
 from .generic_util import *
 
 
-def generate_dms_tags_dict(app_short_name, asset_id):
-    return [{"Key": "AppShortName", "Value": app_short_name}, {"Key": "AssetId", "Value": asset_id}]
+def generate_dms_tags_dict(app_short_name, asset_id, app_code):
+    return [{"Key": "ApplicationShortName", "Value": app_short_name}, {"Key": "AssetId", "Value": asset_id},
+            {"Key": "AppCode", "Value": app_code}]
 
 
 def parse_dms_tags_dict(tags_dict):
@@ -19,16 +20,13 @@ def get_appropriate_replication_instance(tags_dict, credentials: CredentialsUtil
     # TODO: Handle Marker logic
     # TODO: Handle no instance found
     try:
-        parsedDict = {}
         defaultReplicationInstance = "arn:aws:dms:us-east-1:464420198474:rep:6V4B6NMHFAN3HEDPL6ZODO6VXA"
-        for eachDictTag in tags_dict:
-            parsedDict[eachDictTag['Key']] = eachDictTag['Value']
         dmsClient = credentials.get_session().client('dms')
         replicationInstanceResponse = dmsClient.describe_replication_instances()
         for replicationInstance in replicationInstanceResponse['ReplicationInstances']:
             tagsResponse = dmsClient.list_tags_for_resource(ResourceArn=replicationInstance['ReplicationInstanceArn'])
             for eachTag in tagsResponse['TagList']:
-                if eachTag['Key'] == "AppShortName" and eachTag['Value'] == parsedDict['AppShortName']:
+                if eachTag['Key'] == "ApplicationShortName" and eachTag['Value'] == tags_dict['ApplicationShortName']:
                     defaultReplicationInstance = replicationInstance['ReplicationInstanceArn']
         return defaultReplicationInstance
     except Exception as e:
@@ -38,13 +36,13 @@ def get_appropriate_replication_instance(tags_dict, credentials: CredentialsUtil
         return "arn:aws:dms:us-east-1:464420198474:rep:6V4B6NMHFAN3HEDPL6ZODO6VXA"
 
 
-def updateReplicationTaskDetailsInTemplate(inputJson, templateJson, tags_dict, credentials):
+def updateReplicationTaskDetailsInTemplate(inputJson, templateJson, tags_dict, credentials, parsed_tags_dict):
     templateJson['Resources']['ReplicationTask']['Properties']['MigrationType'] = inputJson['ReplicationTaskDetails'][
         'MigrationType']
-    templateJson['Parameters']['ReplicationInstanceARN']['Default'] = get_appropriate_replication_instance(tags_dict,
-                                                                                                           credentials)
+    templateJson['Parameters']['ReplicationInstanceARN']['Default'] = get_appropriate_replication_instance(
+        parsed_tags_dict, credentials)
     templateJson['Resources']['ReplicationTask']['Properties']['ReplicationTaskIdentifier'] = \
-        inputJson['ReplicationTaskDetails']['ReplicationTaskIdentifier']
+        parsed_tags_dict['ApplicationShortName'] + "-" + random_string(8) + "-task"
     templateJson['Resources']['ReplicationTask']['Properties']['Tags'] = tags_dict
 
 
@@ -62,13 +60,13 @@ def updateSourceEndpointDetailsInNewEndpointsTemplate(inputJson, templateJson, c
     templateJson['Resources']['SourceEndpoint']['Properties']['ServerName'] = inputJson['SourceEndpointDetails'][
         'SourceUrl']
     templateJson['Resources']['SourceEndpoint']['Properties']['EndpointIdentifier'] = \
-        inputJson['SourceEndpointDetails']['EndpointIdentifier']
+        parsed_tags_dict['ApplicationShortName'] + "-" + random_string(8) + "-endpoint"
     templateJson['Resources']['SourceEndpoint']['Properties']['EndpointType'] = "source"
     templateJson['Resources']['SourceEndpoint']['Properties']['EngineName'] = inputJson['SourceEndpointDetails'][
         'EngineName']
     templateJson['Resources']['SourceEndpoint']['Properties']['Port'] = inputJson['SourceEndpointDetails']['Port']
     templateJson['Resources']['SourceEndpoint']['Properties']['Username'] = credentials.get_credentials_from_pam(
-        secret_type='username', app_code=inputJson['AppCode'],
+        secret_type='username', app_code=parsed_tags_dict['AppCode'],
         db_name=inputJson['SourceEndpointDetails']['DatabaseName'], environment=environment)
     templateJson['Resources']['SourceEndpoint']['Properties']['DatabaseName'] = inputJson['SourceEndpointDetails'][
         'DatabaseName']
@@ -81,7 +79,7 @@ def updateTargetEndpointDetailsInNewEndpointsTemplate(inputJson, templateJson, c
     templateJson['Resources']['TargetEndpoint']['Properties']['ServerName'] = inputJson['TargetEndpointDetails'][
         'TargetUrl']
     templateJson['Resources']['TargetEndpoint']['Properties']['EndpointIdentifier'] = \
-        inputJson['TargetEndpointDetails']['EndpointIdentifier']
+        parsed_tags_dict['ApplicationShortName'] + "-" + random_string(8) + "-endpoint"
     templateJson['Resources']['TargetEndpoint']['Properties']['EndpointType'] = "target"
     templateJson['Resources']['TargetEndpoint']['Properties']['EngineName'] = inputJson['TargetEndpointDetails'][
         'EngineName']
@@ -103,7 +101,7 @@ def process_existing_endpoints_template(OUTPUT_CFT_PATH, inputJson, tags_dict, p
     EXISTING_ENDPOINTS_TEMPLATE_FILE = json.loads(
         open(os.path.join("..", "templates", "dms-task-existing-endpoints-template.json")).read())
     templateJson = copy.deepcopy(EXISTING_ENDPOINTS_TEMPLATE_FILE)
-    updateReplicationTaskDetailsInTemplate(inputJson, templateJson, tags_dict, credentials)
+    updateReplicationTaskDetailsInTemplate(inputJson, templateJson, tags_dict, credentials, parsed_tags_dict)
     updateTableMappingInTemplate(inputJson, templateJson)
     updateEndpointDetailsInExistingEndpointsTemplate(inputJson, templateJson)
 
@@ -118,7 +116,7 @@ def process_new_endpoints_template(OUTPUT_CFT_PATH, inputJson, tags_dict, parsed
     NEW_ENDPOINTS_TEMPLATE_FILE = read_json_file(path="../templates/dms-task-new-endpoints-template.json",
                                                  file=__file__)
     templateJson = copy.deepcopy(NEW_ENDPOINTS_TEMPLATE_FILE)
-    updateReplicationTaskDetailsInTemplate(inputJson, templateJson, tags_dict, credentials)
+    updateReplicationTaskDetailsInTemplate(inputJson, templateJson, tags_dict, credentials, parsed_tags_dict)
     updateTableMappingInTemplate(inputJson, templateJson)
     updateSourceEndpointDetailsInNewEndpointsTemplate(inputJson, templateJson, credentials, tags_dict, parsed_tags_dict,
                                                       environment)

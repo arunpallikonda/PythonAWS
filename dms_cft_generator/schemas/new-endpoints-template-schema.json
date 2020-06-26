@@ -10,37 +10,21 @@
         "NEW_ENDPOINTS"
       ]
     },
-    "AppShortName": {
-      "type": "string"
-    },
-    "AssetId": {
-      "type": "string"
-    },
-    "AppCode": {
-      "type": "string"
-    },
     "ReplicationTaskDetails": {
       "type": "object",
       "properties": {
         "MigrationType": {
           "type": "string"
-        },
-        "ReplicationTaskIdentifier": {
-          "type": "string"
         }
       },
       "additionalProperties": false,
       "required": [
-        "MigrationType",
-        "ReplicationTaskIdentifier"
+        "MigrationType"
       ]
     },
     "SourceEndpointDetails": {
       "type": "object",
       "properties": {
-        "EndpointIdentifier": {
-          "type": "string"
-        },
         "SourceUrl": {
           "type": "string"
         },
@@ -56,7 +40,6 @@
       },
       "additionalProperties": false,
       "required": [
-        "EndpointIdentifier",
         "SourceUrl",
         "EngineName",
         "Port",
@@ -66,9 +49,6 @@
     "TargetEndpointDetails": {
       "type": "object",
       "properties": {
-        "EndpointIdentifier": {
-          "type": "string"
-        },
         "TargetUrl": {
           "type": "string"
         },
@@ -90,7 +70,6 @@
       },
       "additionalProperties": false,
       "required": [
-        "EndpointIdentifier",
         "TargetUrl",
         "EngineName",
         "Port",
@@ -121,18 +100,20 @@
                   "properties": {
                     "table-name": {
                       "type": "string"
+                    },
+                    "schema-name": {
+                      "type": "string"
                     }
                   },
-                  "additionalProperties": false,
                   "required": [
-                    "table-name"
+                    "table-name",
+                    "schema-name"
                   ]
                 },
                 "rule-action": {
                   "type": "string"
                 }
               },
-              "additionalProperties": false,
               "required": [
                 "rule-type",
                 "rule-id",
@@ -143,7 +124,6 @@
           ]
         }
       },
-      "additionalProperties": false,
       "required": [
         "rules"
       ]
@@ -152,9 +132,6 @@
   "additionalProperties": false,
   "required": [
     "TemplateType",
-    "AppShortName",
-    "AssetId",
-    "AppCode",
     "ReplicationTaskDetails",
     "SourceEndpointDetails",
     "TargetEndpointDetails",
