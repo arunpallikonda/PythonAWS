@@ -29,7 +29,18 @@
           "type": "string"
         },
         "EngineName": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "mysql",
+            "oracle",
+            "postgres",
+            "aurora",
+            "aurora-postgresql",
+            "redshift",
+            "s3",
+            "dynamodb",
+            "sqlserver"
+          ]
         },
         "Port": {
           "type": "integer"
@@ -53,7 +64,18 @@
           "type": "string"
         },
         "EngineName": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "mysql",
+            "oracle",
+            "postgres",
+            "aurora",
+            "aurora-postgresql",
+            "redshift",
+            "s3",
+            "dynamodb",
+            "sqlserver"
+          ]
         },
         "Port": {
           "type": "integer"

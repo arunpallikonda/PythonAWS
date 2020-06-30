@@ -4,16 +4,16 @@
     "MigrationType": "full-load"
   },
   "SourceEndpointDetails": {
-    "SourceUrl": "172.0.0.1",
-    "EngineName": "mysql",
-    "Port": 3306,
+    "SourceUrl": "111.0.0.1",
+    "EngineName": "oracle",
+    "Port": 1521,
     "DatabaseName": "dbName"
   },
   "TargetEndpointDetails": {
     "RDSInstanceIdentifier": "RDSInstanceIdentifier-1",
-    "TargetUrl": "aws::rds::target",
-    "EngineName": "mysql",
-    "Port": 3306,
+    "TargetUrl": "171.0.0.1",
+    "EngineName": "oracle",
+    "Port": 1521,
     "DatabaseName": "dbName"
   },
   "TableMappings": {

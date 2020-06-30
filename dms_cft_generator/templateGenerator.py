@@ -53,7 +53,7 @@ def deploy_cloudformation(templateJson, session, source_db_password):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Create DMS Replication Task.')
     parser.add_argument('--roleToAssume', action="store", dest="assumeRole", help='ARN of the role to assume',
-                        metavar='', required=True)
+                        metavar='')
     parser.add_argument('--credentialsProfile', action="store", dest="credentialsProfile",
                         help='AWS Credentials Profile to use', metavar='')
     parser.add_argument('--inputJsonPath', action="store", dest="inputJsonPath", help='Path of the input JSON file',
@@ -89,7 +89,7 @@ if __name__ == '__main__':
                 tags_dict = generate_dms_tags_dict(app_short_name=APPLICATION_SHORT_NAME, asset_id=ASSET_ID,
                                                    app_code=APP_CODE)
                 parsed_tags_dict = parse_dms_tags_dict(tags_dict)
-                validate_input_json(inputJson)
+                validate_input_json(inputJson,credentials.get_session())
                 # TODO: Existing endpoints code is not complete
                 if inputJson['TemplateType'] == "EXISTING_ENDPOINTS":
                     templateJson = process_existing_endpoints_template(OUTPUT_CFT_PATH, inputJson, tags_dict,
