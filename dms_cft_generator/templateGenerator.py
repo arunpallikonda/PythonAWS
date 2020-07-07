@@ -3,6 +3,8 @@ import json
 import time
 from os import path
 
+import botocore
+
 from .utility.credentials_util import CredentialsUtil
 from .utility.dms_util import process_existing_endpoints_template, validate_input_json, \
     generate_dms_tags_dict, process_new_endpoints_template, parse_dms_tags_dict
@@ -31,22 +33,54 @@ def deploy_cloudformation(templateJson, session, source_db_password):
     while True:
         stackStatus = cloudFormationClient.describe_stacks(StackName=stackName)['Stacks'][0]['StackStatus']
         if stackStatus == 'CREATE_COMPLETE' or stackStatus == 'UPDATE_COMPLETE':
-            replicationTaskArn = dmsClient.describe_replication_tasks(
-                Filters=[{'Name': 'replication-task-id', 'Values': [replicationTaskIdentifier]}])[
-                'ReplicationTasks'][0]['ReplicationTaskArn']
             try:
+                sleep_time = 60
+                replicationTaskArn = dmsClient.describe_replication_tasks(
+                    Filters=[{'Name': 'replication-task-id', 'Values': [replicationTaskIdentifier]}])[
+                    'ReplicationTasks'][0]['ReplicationTaskArn']
                 dmsClient.start_replication_task(ReplicationTaskArn=replicationTaskArn,
                                                  StartReplicationTaskType='start-replication')
-            except Exception as e:
+                # TODO: Assuming task will change to Running state after 60 secs of start. Confirm this assumption
+                print("Sleeping %d secs for replication task to start" % sleep_time)
+                time.sleep(sleep_time)
+                while True:
+                    task_response = dmsClient.describe_replication_tasks(
+                        Filters=[{'Name': 'replication-task-arn', 'Values': [replicationTaskArn]}])
+                    if task_response['ReplicationTasks'][0]['Status'] in ['Creating', 'Running', 'Stopping', 'Starting',
+                                                                          'Deleting']:
+                        print('Replication task: %s, currentStatus: %s, Sleeping %d secs' % (
+                            replicationTaskArn, task_response['ReplicationTasks'][0]['Status'], sleep_time))
+                        time.sleep(sleep_time)
+                    else:
+                        print('Replication task: %s, currentStatus: %s' % (
+                            replicationTaskArn, task_response['ReplicationTasks'][0]['Status']))
+                        try:
+                            cloudFormationClient.delete_stack(StackName=stackName)
+                            waiter = cloudFormationClient.get_waiter('stack_delete_complete')
+                            waiter.wait(
+                                StackName=stackName,
+                                WaiterConfig={
+                                    'Delay': 5,
+                                    'MaxAttempts': 60
+                                }
+                            )
+                            print('Successfully deleted stack: %s' % stackName)
+                            break
+                        except botocore.exceptions.ClientError as error:
+                            print("Failed to delete stack %s with error %s" % (
+                                stackName, error.response['Error']['Code']))
+                            break
+                break
+            except botocore.exceptions.ClientError as error:
                 # TODO: Delete stack if start replication task failed?
-                print("ERROR while starting replication task. Error: " + str(e))
-            break
+                print("ERROR while starting replication task. Error: %s" % error.response['Error']['Code'])
+                break
         elif stackStatus == 'CREATE_IN_PROGRESS' or stackStatus == 'UPDATE_IN_PROGRESS':
-            print("Stack creation in progress. Sleeping 5secs!!!")
+            print("Stack: %s creation in progress. Sleeping 5secs!!!" % stackName)
             time.sleep(5)
         else:
-            print("Error creating cloudformation stack for replicationTask: " + replicationTaskIdentifier
-                  + ". Stack status is " + stackStatus)
+            print("Error creating cloudformation stack: %s for replicationTask: %s. Stack status is %s" % (
+                stackName, replicationTaskIdentifier, stackStatus))
             break
 
 
