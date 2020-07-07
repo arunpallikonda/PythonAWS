@@ -52,6 +52,7 @@ class CredentialsUtil:
                                                shell=True)
             except Exception as e:
                 print("Unable to retrieve password from PAM. Returning default value")
-                return "dummyValue"
+                return "adminpassword"
         elif secret_type == "username":
-            return "dms_" + app_code
+            # return "dms_" + app_code
+            return 'admin'

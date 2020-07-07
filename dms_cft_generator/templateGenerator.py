@@ -5,6 +5,7 @@ from os import path
 
 import botocore
 
+from .utility.generic_util import mergeInputFiles, delete_cloudformation_stack
 from .utility.credentials_util import CredentialsUtil
 from .utility.dms_util import process_existing_endpoints_template, validate_input_json, \
     generate_dms_tags_dict, process_new_endpoints_template, parse_dms_tags_dict
@@ -54,26 +55,13 @@ def deploy_cloudformation(templateJson, session, source_db_password):
                     else:
                         print('Replication task: %s, currentStatus: %s' % (
                             replicationTaskArn, task_response['ReplicationTasks'][0]['Status']))
-                        try:
-                            cloudFormationClient.delete_stack(StackName=stackName)
-                            waiter = cloudFormationClient.get_waiter('stack_delete_complete')
-                            waiter.wait(
-                                StackName=stackName,
-                                WaiterConfig={
-                                    'Delay': 5,
-                                    'MaxAttempts': 60
-                                }
-                            )
-                            print('Successfully deleted stack: %s' % stackName)
-                            break
-                        except botocore.exceptions.ClientError as error:
-                            print("Failed to delete stack %s with error %s" % (
-                                stackName, error.response['Error']['Code']))
-                            break
+                        delete_cloudformation_stack(cloudFormationClient, stackName)
+                        break
                 break
             except botocore.exceptions.ClientError as error:
                 # TODO: Delete stack if start replication task failed?
-                print("ERROR while starting replication task. Error: %s" % error.response['Error']['Code'])
+                print("ERROR while starting replication task. Error: %s" % error.response['Error'])
+                delete_cloudformation_stack(cloudFormationClient, stackName)
                 break
         elif stackStatus == 'CREATE_IN_PROGRESS' or stackStatus == 'UPDATE_IN_PROGRESS':
             print("Stack: %s creation in progress. Sleeping 5secs!!!" % stackName)
@@ -90,7 +78,7 @@ if __name__ == '__main__':
                         metavar='')
     parser.add_argument('--credentialsProfile', action="store", dest="credentialsProfile",
                         help='AWS Credentials Profile to use', metavar='')
-    parser.add_argument('--inputJsonPath', action="store", dest="inputJsonPath", help='Path of the input JSON file',
+    parser.add_argument('--inputPath', action="store", dest="inputPath", help='Path of the input JSON file',
                         metavar='')
     parser.add_argument('--outputPath', action="store", dest="outputPath", help='Output Path for generated CFT',
                         metavar='')
@@ -104,7 +92,7 @@ if __name__ == '__main__':
 
     ASSUME_ROLE = parser.parse_args().assumeRole
     CREDENTIALS_PROFILE = parser.parse_args().credentialsProfile
-    INPUT_JSON_PATH = parser.parse_args().inputJsonPath
+    INPUT_PATH = parser.parse_args().inputPath
     OUTPUT_CFT_PATH = parser.parse_args().outputPath
     ENVIRONMENT = parser.parse_args().environment
     APPLICATION_SHORT_NAME = parser.parse_args().applicationShortName
@@ -112,37 +100,36 @@ if __name__ == '__main__':
     ASSET_ID = parser.parse_args().assetId
     CERTIFICATE_PATH = parser.parse_args().certificatePath
 
-    if (not ASSUME_ROLE and not CREDENTIALS_PROFILE) or not INPUT_JSON_PATH or not OUTPUT_CFT_PATH or not ENVIRONMENT \
+    if (not ASSUME_ROLE and not CREDENTIALS_PROFILE) or not INPUT_PATH or not OUTPUT_CFT_PATH or not ENVIRONMENT \
             or not APPLICATION_SHORT_NAME or not APP_CODE or not ASSET_ID:
         raise Exception("Required parameters are not provided. Cannot continue forward.")
 
     credentials = CredentialsUtil(assume_role=ASSUME_ROLE, credentials_profile=CREDENTIALS_PROFILE, region='us-east-1')
 
-    if path.exists(INPUT_JSON_PATH) and path.isfile(INPUT_JSON_PATH):
+    if path.exists(INPUT_PATH) and path.isdir(INPUT_PATH):
         try:
-            with open(INPUT_JSON_PATH) as inputFile:
-                inputJson = json.load(inputFile)
-                tags_dict = generate_dms_tags_dict(app_short_name=APPLICATION_SHORT_NAME, asset_id=ASSET_ID,
-                                                   app_code=APP_CODE)
-                parsed_tags_dict = parse_dms_tags_dict(tags_dict)
-                validate_input_json(inputJson, credentials.get_session())
-                # TODO: Existing endpoints code is not complete
-                if inputJson['TemplateType'] == "EXISTING_ENDPOINTS":
-                    templateJson = process_existing_endpoints_template(OUTPUT_CFT_PATH, inputJson, tags_dict,
-                                                                       parsed_tags_dict, credentials)
-                    deploy_cloudformation(templateJson, credentials.get_session(), credentials.get_credentials_from_pam(
-                        secret_type='password', app_code=APP_CODE,
-                        db_name=inputJson['SourceEndpointDetails']['DatabaseName'], environment=ENVIRONMENT))
-                elif inputJson['TemplateType'] == "NEW_ENDPOINTS":
-                    templateJson = process_new_endpoints_template(OUTPUT_CFT_PATH, inputJson, tags_dict,
-                                                                  parsed_tags_dict, credentials, ENVIRONMENT,
-                                                                  CERTIFICATE_PATH)
-                    deploy_cloudformation(templateJson, credentials.get_session(), credentials.get_credentials_from_pam(
-                        secret_type='password', app_code=APP_CODE, environment=ENVIRONMENT,
-                        db_name=inputJson['SourceEndpointDetails']['DatabaseName']))
-                else:
-                    print("Invalid templateType: " + inputJson['TemplateType'])
+            inputJson = mergeInputFiles(INPUT_PATH)
+            tags_dict = generate_dms_tags_dict(app_short_name=APPLICATION_SHORT_NAME, asset_id=ASSET_ID,
+                                               app_code=APP_CODE)
+            parsed_tags_dict = parse_dms_tags_dict(tags_dict)
+            validate_input_json(inputJson, credentials.get_session())
+            # TODO: Existing endpoints code is not complete
+            if inputJson['TemplateType'] == "EXISTING_ENDPOINTS":
+                templateJson = process_existing_endpoints_template(OUTPUT_CFT_PATH, inputJson, tags_dict,
+                                                                   parsed_tags_dict, credentials)
+                deploy_cloudformation(templateJson, credentials.get_session(), credentials.get_credentials_from_pam(
+                    secret_type='password', app_code=APP_CODE,
+                    db_name=inputJson['SourceEndpointDetails']['DatabaseName'], environment=ENVIRONMENT))
+            elif inputJson['TemplateType'] == "NEW_ENDPOINTS":
+                templateJson = process_new_endpoints_template(OUTPUT_CFT_PATH, inputJson, tags_dict,
+                                                              parsed_tags_dict, credentials, ENVIRONMENT,
+                                                              CERTIFICATE_PATH)
+                deploy_cloudformation(templateJson, credentials.get_session(), credentials.get_credentials_from_pam(
+                    secret_type='password', app_code=APP_CODE, environment=ENVIRONMENT,
+                    db_name=inputJson['SourceEndpointDetails']['DatabaseName']))
+            else:
+                print("Invalid templateType: " + inputJson['TemplateType'])
         except Exception as e:
-            print("Unable to parse inputFile: " + INPUT_JSON_PATH + ", error: " + str(e))
+            print("Unable to parse inputFile: " + INPUT_PATH + ", error: " + str(e))
     else:
         print("Input path is not valid.")

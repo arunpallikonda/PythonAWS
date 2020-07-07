@@ -1,0 +1,15 @@
+{
+  "SourceEndpointDetails": {
+    "SourceUrl": "database-.cj22o5q92mgn.us-east-1.rds.amazonaws.com",
+    "EngineName": "mysql",
+    "Port": 3306,
+    "DatabaseName": "sampledb"
+  },
+  "TargetEndpointDetails": {
+    "RDSInstanceIdentifier": "RDSInstanceIdentifier-1",
+    "TargetUrl": "database-2.cj22o5q92mgn.us-east-1.rds.amazonaws.com",
+    "EngineName": "mysql",
+    "Port": 3306,
+    "DatabaseName": "sampledb"
+  }
+}
