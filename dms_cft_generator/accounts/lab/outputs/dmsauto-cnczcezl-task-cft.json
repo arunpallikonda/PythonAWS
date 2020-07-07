@@ -1,0 +1,128 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "DMS Cloudformation",
+    "Parameters": {
+        "ReplicationInstanceARN": {
+            "Default": "arn:aws:dms:us-east-1:464420198474:rep:EJGW7XWCPCYQRKSAGL6LGHXZNI",
+            "NoEcho": "true",
+            "Description": "Enter ARN of Replication Instance to be used",
+            "Type": "String"
+        },
+        "PasswordFromPAM": {
+            "NoEcho": "true",
+            "Description": "Enter the Source Database Password",
+            "Type": "String"
+        }
+    },
+    "Resources": {
+        "ReplicationTask": {
+            "Type": "AWS::DMS::ReplicationTask",
+            "Properties": {
+                "SourceEndpointArn": {
+                    "Ref": "SourceEndpoint"
+                },
+                "TargetEndpointArn": {
+                    "Ref": "TargetEndpoint"
+                },
+                "ReplicationInstanceArn": {
+                    "Ref": "ReplicationInstanceARN"
+                },
+                "ReplicationTaskIdentifier": "dmsauto-cnczcezl-task",
+                "MigrationType": "full-load",
+                "TableMappings": "{\"rules\": [{\"rule-type\": \"selection\", \"rule-id\": \"1\", \"rule-name\": \"1\", \"object-locator\": {\"schema-name\": \"%\", \"table-name\": \"%\"}, \"rule-action\": \"include\"}]}",
+                "Tags": [
+                    {
+                        "Key": "ApplicationShortName",
+                        "Value": "dmsauto"
+                    },
+                    {
+                        "Key": "AssetId",
+                        "Value": "2222"
+                    },
+                    {
+                        "Key": "AppCode",
+                        "Value": "fsk"
+                    }
+                ]
+            }
+        },
+        "SourceEndpoint": {
+            "Type": "AWS::DMS::Endpoint",
+            "Properties": {
+                "ServerName": "172.0.0.1",
+                "EndpointIdentifier": "dmsauto-lhrrqjft-endpoint",
+                "EndpointType": "source",
+                "EngineName": "mysql",
+                "Port": 3306,
+                "Password": {
+                    "Ref": "PasswordFromPAM"
+                },
+                "Username": "dms_fsk",
+                "DatabaseName": "dbName",
+                "Tags": [
+                    {
+                        "Key": "ApplicationShortName",
+                        "Value": "dmsauto"
+                    },
+                    {
+                        "Key": "AssetId",
+                        "Value": "2222"
+                    },
+                    {
+                        "Key": "AppCode",
+                        "Value": "fsk"
+                    }
+                ]
+            }
+        },
+        "TargetEndpoint": {
+            "Type": "AWS::DMS::Endpoint",
+            "Properties": {
+                "ServerName": "aws::rds::target",
+                "EndpointIdentifier": "dmsauto-bamhoexg-endpoint",
+                "EndpointType": "target",
+                "EngineName": "mysql",
+                "Port": 3306,
+                "Password": "{{resolve:secretsmanager:/dmsauto/RDSInstanceIdentifier-1-dmsauto_dbos:SecretString:password}}",
+                "Username": "{{resolve:secretsmanager:/dmsauto/RDSInstanceIdentifier-1-dmsauto_dbos:SecretString:username}}",
+                "DatabaseName": "dbName",
+                "Tags": [
+                    {
+                        "Key": "ApplicationShortName",
+                        "Value": "dmsauto"
+                    },
+                    {
+                        "Key": "AssetId",
+                        "Value": "2222"
+                    },
+                    {
+                        "Key": "AppCode",
+                        "Value": "fsk"
+                    }
+                ]
+            }
+        }
+    },
+    "Outputs": {
+        "StackName": {
+            "Value": {
+                "Ref": "AWS::StackName"
+            }
+        },
+        "RegionName": {
+            "Value": {
+                "Ref": "AWS::Region"
+            }
+        },
+        "SourceEndPoint": {
+            "Value": {
+                "Ref": "SourceEndpoint"
+            }
+        },
+        "TargetEndPoint": {
+            "Value": {
+                "Ref": "TargetEndpoint"
+            }
+        }
+    }
+}

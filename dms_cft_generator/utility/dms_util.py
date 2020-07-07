@@ -1,5 +1,7 @@
 import copy
 
+import botocore
+
 from .credentials_util import CredentialsUtil
 from .generic_util import *
 
@@ -97,6 +99,37 @@ def updateTargetEndpointDetailsInNewEndpointsTemplate(inputJson, templateJson, c
     templateJson['Resources']['TargetEndpoint']['Properties']['Tags'] = tags_dict
 
 
+def updateDatabaseSpecificDetails(inputJson, templateJson, parsed_tags_dict, credentials: CredentialsUtil,
+                                  CERTIFICATE_PATH):
+    if inputJson['TargetEndpointDetails']['EngineName'] == 'postgres':
+        templateJson['Resources']['TargetEndpoint']['Properties']['SslMode'] = 'require'
+    if inputJson['SourceEndpointDetails']['EngineName'] == 'oracle':
+        if not CERTIFICATE_PATH:
+            raise Exception("Oracle Source needs certificate. CertificatePath is empty")
+        dmsClient = credentials.get_session().client('dms')
+        certificateArn = ''
+        # TODO: Change the certificate name
+        certificate_name = 'dmsauto_' + parsed_tags_dict['ApplicationShortName'] + \
+                           inputJson['SourceEndpointDetails'][
+                               'DatabaseName']
+        try:
+            response = dmsClient.describe_certificates(Filters=[
+                {'Name': 'certificate-id', 'Values': [certificate_name]}])
+            certificateArn = response['Certificates'][0]['CertificateArn']
+        except botocore.exceptions.ClientError as error:
+            if error.response['Error']['Code'] == 'ResourceNotFoundFault':
+                print("Certificate for ApplicationShortName: " + parsed_tags_dict[
+                    'ApplicationShortName'] + ' does not exists')
+                # TODO: Validate certificate
+                certificate = open(CERTIFICATE_PATH).read()
+                response = dmsClient.import_certificate(
+                    CertificateIdentifier=certificate_name,
+                    CertificateWallet=certificate
+                )
+                certificateArn = response['Certificate']['CertificateArn']
+        templateJson['Resources']['SourceEndpoint']['Properties']['CertificateArn'] = certificateArn
+
+
 def process_existing_endpoints_template(OUTPUT_CFT_PATH, inputJson, tags_dict, parsed_tags_dict, credentials):
     EXISTING_ENDPOINTS_TEMPLATE_FILE = json.loads(
         open(os.path.join("..", "templates", "dms-task-existing-endpoints-template.json")).read())
@@ -112,7 +145,8 @@ def process_existing_endpoints_template(OUTPUT_CFT_PATH, inputJson, tags_dict, p
     return templateJson
 
 
-def process_new_endpoints_template(OUTPUT_CFT_PATH, inputJson, tags_dict, parsed_tags_dict, credentials, environment):
+def process_new_endpoints_template(OUTPUT_CFT_PATH, inputJson, tags_dict, parsed_tags_dict, credentials, environment,
+                                   CERTIFICATE_PATH):
     NEW_ENDPOINTS_TEMPLATE_FILE = read_json_file(path="../templates/dms-task-new-endpoints-template.json",
                                                  file=__file__)
     templateJson = copy.deepcopy(NEW_ENDPOINTS_TEMPLATE_FILE)
@@ -122,6 +156,7 @@ def process_new_endpoints_template(OUTPUT_CFT_PATH, inputJson, tags_dict, parsed
                                                       environment)
     updateTargetEndpointDetailsInNewEndpointsTemplate(inputJson, templateJson, credentials, tags_dict, parsed_tags_dict,
                                                       environment)
+    updateDatabaseSpecificDetails(inputJson, templateJson, parsed_tags_dict, credentials, CERTIFICATE_PATH)
 
     outputTemplateFileName = templateJson['Resources']['ReplicationTask']['Properties'][
                                  'ReplicationTaskIdentifier'] + "-cft.json"

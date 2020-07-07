@@ -1,6 +1,6 @@
+import argparse
 import json
 import time
-import argparse
 from os import path
 
 from .utility.credentials_util import CredentialsUtil
@@ -66,6 +66,7 @@ if __name__ == '__main__':
                         help='Application Short Name', metavar='')
     parser.add_argument('--appCode', action="store", dest="appCode", help='Application Code', metavar='')
     parser.add_argument('--assetId', action="store", dest="assetId", help='AssetId', metavar='')
+    parser.add_argument('--certificatePath', action="store", dest="certificatePath", help='certificatePath', metavar='')
 
     ASSUME_ROLE = parser.parse_args().assumeRole
     CREDENTIALS_PROFILE = parser.parse_args().credentialsProfile
@@ -75,6 +76,7 @@ if __name__ == '__main__':
     APPLICATION_SHORT_NAME = parser.parse_args().applicationShortName
     APP_CODE = parser.parse_args().appCode
     ASSET_ID = parser.parse_args().assetId
+    CERTIFICATE_PATH = parser.parse_args().certificatePath
 
     if (not ASSUME_ROLE and not CREDENTIALS_PROFILE) or not INPUT_JSON_PATH or not OUTPUT_CFT_PATH or not ENVIRONMENT \
             or not APPLICATION_SHORT_NAME or not APP_CODE or not ASSET_ID:
@@ -89,7 +91,7 @@ if __name__ == '__main__':
                 tags_dict = generate_dms_tags_dict(app_short_name=APPLICATION_SHORT_NAME, asset_id=ASSET_ID,
                                                    app_code=APP_CODE)
                 parsed_tags_dict = parse_dms_tags_dict(tags_dict)
-                validate_input_json(inputJson,credentials.get_session())
+                validate_input_json(inputJson, credentials.get_session())
                 # TODO: Existing endpoints code is not complete
                 if inputJson['TemplateType'] == "EXISTING_ENDPOINTS":
                     templateJson = process_existing_endpoints_template(OUTPUT_CFT_PATH, inputJson, tags_dict,
@@ -99,7 +101,8 @@ if __name__ == '__main__':
                         db_name=inputJson['SourceEndpointDetails']['DatabaseName'], environment=ENVIRONMENT))
                 elif inputJson['TemplateType'] == "NEW_ENDPOINTS":
                     templateJson = process_new_endpoints_template(OUTPUT_CFT_PATH, inputJson, tags_dict,
-                                                                  parsed_tags_dict, credentials, ENVIRONMENT)
+                                                                  parsed_tags_dict, credentials, ENVIRONMENT,
+                                                                  CERTIFICATE_PATH)
                     deploy_cloudformation(templateJson, credentials.get_session(), credentials.get_credentials_from_pam(
                         secret_type='password', app_code=APP_CODE, environment=ENVIRONMENT,
                         db_name=inputJson['SourceEndpointDetails']['DatabaseName']))
