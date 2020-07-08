@@ -138,11 +138,26 @@ def updateDatabaseSpecificDetails(inputJson, templateJson, tags_dict, parsed_tag
                     if eachFile.endswith('.sso'):
                         with open(os.path.join(CERTIFICATE_PATH, eachFile)) as inputFile:
                             certificate = inputFile.read()
-                            response = dmsClient.import_certificate(
-                                CertificateIdentifier=certificate_name, CertificateWallet=certificate,
-                                Tags=tags_dict)
-                            certificateArn = response['Certificate']['CertificateArn']
-        templateJson['Resources']['SourceEndpoint']['Properties']['CertificateArn'] = certificateArn
+                            # templateJson['Resources']['SourceCertificate'] = {}
+                            # templateJson['Resources']['SourceCertificate']['Type'] = "AWS::DMS::Certificate"
+                            # templateJson['Resources']['SourceCertificate']['Properties'] = {}
+                            # templateJson['Resources']['SourceCertificate']['Properties'][
+                            #     'CertificateIdentifier'] = certificate_name
+                            # templateJson['Resources']['SourceCertificate']['Properties'][
+                            #     'CertificateWallet'] = certificate
+                            # # templateJson['Resources']['SourceCertificate']['Properties'][
+                            # #     'Tags'] = tags_dict
+                            # templateJson['Resources']['SourceEndpoint']['Properties']['CertificateArn'] = {}
+                            # templateJson['Resources']['SourceEndpoint']['Properties']['CertificateArn'][
+                            #     'Ref'] = 'SourceCertificate'
+
+        #                     response = dmsClient.import_certificate(
+        #                         CertificateIdentifier=certificate_name, CertificateWallet=certificate,
+        #                         Tags=tags_dict)
+        #                     certificateArn = response['Certificate']['CertificateArn']
+        # templateJson['Resources']['SourceEndpoint']['Properties']['CertificateArn'] = certificateArn
+            else:
+                print("Error importing certificate: %s" % error)
 
 
 def process_existing_endpoints_template(OUTPUT_CFT_PATH, inputJson, tags_dict, parsed_tags_dict, credentials):
