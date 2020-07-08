@@ -112,7 +112,7 @@ def updateTargetEndpointDetailsInNewEndpointsTemplate(inputJson, templateJson, c
     templateJson['Resources']['TargetEndpoint']['Properties']['Tags'] = tags_dict
 
 
-def updateDatabaseSpecificDetails(inputJson, templateJson, parsed_tags_dict, credentials: CredentialsUtil,
+def updateDatabaseSpecificDetails(inputJson, templateJson, tags_dict, parsed_tags_dict, credentials: CredentialsUtil,
                                   CERTIFICATE_PATH):
     if inputJson['TargetEndpointDetails']['EngineName'] == 'postgres':
         templateJson['Resources']['TargetEndpoint']['Properties']['SslMode'] = 'require'
@@ -139,7 +139,8 @@ def updateDatabaseSpecificDetails(inputJson, templateJson, parsed_tags_dict, cre
                         with open(os.path.join(CERTIFICATE_PATH, eachFile)) as inputFile:
                             certificate = inputFile.read()
                             response = dmsClient.import_certificate(
-                                CertificateIdentifier=certificate_name, CertificateWallet=certificate)
+                                CertificateIdentifier=certificate_name, CertificateWallet=certificate,
+                                Tags=tags_dict)
                             certificateArn = response['Certificate']['CertificateArn']
         templateJson['Resources']['SourceEndpoint']['Properties']['CertificateArn'] = certificateArn
 
@@ -170,7 +171,7 @@ def process_new_endpoints_template(OUTPUT_CFT_PATH, inputJson, tags_dict, parsed
                                                       environment)
     updateTargetEndpointDetailsInNewEndpointsTemplate(inputJson, templateJson, credentials, tags_dict, parsed_tags_dict,
                                                       environment)
-    updateDatabaseSpecificDetails(inputJson, templateJson, parsed_tags_dict, credentials, CERTIFICATE_PATH)
+    updateDatabaseSpecificDetails(inputJson, templateJson, tags_dict, parsed_tags_dict, credentials, CERTIFICATE_PATH)
 
     outputTemplateFileName = templateJson['Resources']['ReplicationTask']['Properties'][
                                  'ReplicationTaskIdentifier'] + "-cft.json"
