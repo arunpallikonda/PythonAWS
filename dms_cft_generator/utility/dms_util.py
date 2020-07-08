@@ -131,14 +131,16 @@ def updateDatabaseSpecificDetails(inputJson, templateJson, parsed_tags_dict, cre
         except botocore.exceptions.ClientError as error:
             if error.response['Error']['Code'] == 'ResourceNotFoundFault':
                 print("Certificate for ApplicationShortName: " + parsed_tags_dict[
-                    'ApplicationShortName'] + ' does not exists')
+                    'ApplicationShortName'] + ' does not exists. Adding the certificate')
                 # TODO: Validate certificate
-                certificate = open(CERTIFICATE_PATH).read()
-                response = dmsClient.import_certificate(
-                    CertificateIdentifier=certificate_name,
-                    CertificateWallet=certificate
-                )
-                certificateArn = response['Certificate']['CertificateArn']
+                inputFiles = [f for f in os.listdir(CERTIFICATE_PATH) if isfile(join(CERTIFICATE_PATH, f))]
+                for eachFile in inputFiles:
+                    if eachFile.endswith('.sso'):
+                        with open(os.path.join(CERTIFICATE_PATH, eachFile)) as inputFile:
+                            certificate = inputFile.read()
+                            response = dmsClient.import_certificate(
+                                CertificateIdentifier=certificate_name, CertificateWallet=certificate)
+                            certificateArn = response['Certificate']['CertificateArn']
         templateJson['Resources']['SourceEndpoint']['Properties']['CertificateArn'] = certificateArn
 
 
