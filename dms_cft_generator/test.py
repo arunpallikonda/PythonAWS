@@ -42,4 +42,4 @@ waiter.wait(
 )
 print('Successfully deleted stack: %s' % 'dmsauto-bvbyhlnb-task-DMS-stack')
 
-# --credentialsProfile=default --inputPath=/Users/vidyaprabhakarsristi/PycharmProjects/PythonAWS/Dms_cft_generator/accounts/LAB/inputs --outputPath=/Users/vidyaprabhakarsristi/PycharmProjects/PythonAWS/Dms_cft_generator/accounts/LAB/outputs --environment=s --applicationShortName=dmsauto --appCode=fsk --assetId=2222 --certificatePath=/Users/vidyaprabhakarsristi/PycharmProjects/PythonAWS/Dms_cft_generator/eros.sso
+# --credentialsProfile=default --inputPath=/Users/vidyaprabhakarsristi/PycharmProjects/PythonAWS/Dms_cft_generator/accounts/LAB/inputs --outputPath=/Users/vidyaprabhakarsristi/PycharmProjects/PythonAWS/Dms_cft_generator/accounts/LAB/outputs --environment=s --applicationShortName=dmsauto --appCode=fsk --assetId=2222

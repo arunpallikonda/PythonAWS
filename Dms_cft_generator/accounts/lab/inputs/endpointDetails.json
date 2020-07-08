@@ -1,7 +1,7 @@
 {
   "SourceEndpointDetails": {
     "SourceUrl": "database-.cj22o5q92mgn.us-east-1.rds.amazonaws.com",
-    "EngineName": "mysql",
+    "EngineName": "oracle",
     "Port": 3306,
     "DatabaseName": "sampledb"
   },

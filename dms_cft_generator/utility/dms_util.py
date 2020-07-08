@@ -56,7 +56,7 @@ def updateReplicationTaskDetailsInTemplate(inputJson, templateJson, tags_dict, c
         parsed_tags_dict, credentials)
     templateJson['Resources']['ReplicationTask']['Properties']['ReplicationTaskIdentifier'] = \
         parsed_tags_dict['ApplicationShortName'] + "-" + parsed_tags_dict['AppCode'] + "-" + \
-        inputJson['SourceEndpointDetails']['DatabaseName'] + "-" + random_string(6)
+        inputJson['SourceEndpointDetails']['DatabaseName'] + "-" + random_string(8)
     templateJson['Resources']['ReplicationTask']['Properties']['Tags'] = tags_dict
 
 
@@ -74,7 +74,8 @@ def updateSourceEndpointDetailsInNewEndpointsTemplate(inputJson, templateJson, c
     templateJson['Resources']['SourceEndpoint']['Properties']['ServerName'] = inputJson['SourceEndpointDetails'][
         'SourceUrl']
     templateJson['Resources']['SourceEndpoint']['Properties']['EndpointIdentifier'] = \
-        parsed_tags_dict['ApplicationShortName'] + "-" + random_string(8) + "-endpoint"
+        parsed_tags_dict['ApplicationShortName'] + "-" + inputJson['SourceEndpointDetails'][
+            'DatabaseName'] + '-' + random_string(8) + "-endpoint"
     templateJson['Resources']['SourceEndpoint']['Properties']['EndpointType'] = "source"
     templateJson['Resources']['SourceEndpoint']['Properties']['EngineName'] = inputJson['SourceEndpointDetails'][
         'EngineName']
@@ -89,11 +90,11 @@ def updateSourceEndpointDetailsInNewEndpointsTemplate(inputJson, templateJson, c
 
 def updateTargetEndpointDetailsInNewEndpointsTemplate(inputJson, templateJson, credentials, tags_dict,
                                                       parsed_tags_dict, environment):
-    #
     templateJson['Resources']['TargetEndpoint']['Properties']['ServerName'] = inputJson['TargetEndpointDetails'][
         'TargetUrl']
     templateJson['Resources']['TargetEndpoint']['Properties']['EndpointIdentifier'] = \
-        parsed_tags_dict['ApplicationShortName'] + "-" + random_string(8) + "-endpoint"
+        parsed_tags_dict['ApplicationShortName'] + "-" + inputJson['TargetEndpointDetails'][
+            'DatabaseName'] + '-' + random_string(8) + "-endpoint"
     templateJson['Resources']['TargetEndpoint']['Properties']['EndpointType'] = "target"
     templateJson['Resources']['TargetEndpoint']['Properties']['EngineName'] = inputJson['TargetEndpointDetails'][
         'EngineName']
@@ -121,9 +122,8 @@ def updateDatabaseSpecificDetails(inputJson, templateJson, parsed_tags_dict, cre
         dmsClient = credentials.get_session().client('dms')
         certificateArn = ''
         # TODO: Change the certificate name
-        certificate_name = 'dmsauto_' + parsed_tags_dict['ApplicationShortName'] + \
-                           inputJson['SourceEndpointDetails'][
-                               'DatabaseName']
+        certificate_name = parsed_tags_dict['ApplicationShortName'] + '-' + parsed_tags_dict['AppCode'] + '-' + \
+                           inputJson['SourceEndpointDetails']['DatabaseName']
         try:
             response = dmsClient.describe_certificates(Filters=[
                 {'Name': 'certificate-id', 'Values': [certificate_name]}])
