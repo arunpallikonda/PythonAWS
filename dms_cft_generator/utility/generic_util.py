@@ -1,8 +1,7 @@
 import json
 import os
-import string
 import random
-import logging
+import string
 from os.path import isfile, join
 
 import botocore
@@ -33,33 +32,40 @@ def existing_endpoints(inputJson, session):
     isTargetExisting = False
     existing_target_arn = []
     isReplicationTaskExisting = False
-    # TODO: Handle marker case here
+
     response = dmsClient.describe_endpoints()
-    for eachEndpoint in response['Endpoints']:
-        if eachEndpoint['EndpointType'] == 'SOURCE' and (
-                ('EngineName' in eachEndpoint and inputJson['SourceEndpointDetails'][
-                    'EngineName'] == eachEndpoint['EngineName']) and
-                ('ServerName' in eachEndpoint and inputJson['SourceEndpointDetails'][
-                    'SourceUrl'] == eachEndpoint['ServerName']) and
-                ('Port' in eachEndpoint and inputJson['SourceEndpointDetails']['Port'] ==
-                 eachEndpoint['Port']) and
-                ('DatabaseName' in eachEndpoint and inputJson['SourceEndpointDetails'][
-                    'DatabaseName'] == eachEndpoint['DatabaseName']) and
-                ('Status' in eachEndpoint and eachEndpoint['Status'] == 'active')):
-            isSourceExisting = True
-            existing_source_arn.append(eachEndpoint['EndpointArn'])
-        elif eachEndpoint['EndpointType'] == 'TARGET' and (
-                ('EngineName' in eachEndpoint and inputJson['TargetEndpointDetails'][
-                    'EngineName'] == eachEndpoint['EngineName']) and
-                ('ServerName' in eachEndpoint and inputJson['TargetEndpointDetails'][
-                    'TargetUrl'] == eachEndpoint['ServerName']) and
-                ('Port' in eachEndpoint and inputJson['TargetEndpointDetails']['Port'] ==
-                 eachEndpoint['Port']) and
-                ('DatabaseName' in eachEndpoint and inputJson['TargetEndpointDetails'][
-                    'DatabaseName'] == eachEndpoint['DatabaseName']) and
-                ('Status' in eachEndpoint and eachEndpoint['Status'] == 'active')):
-            isTargetExisting = True
-            existing_target_arn.append(eachEndpoint['EndpointArn'])
+    marker = response.get('Marker', None)
+    while True:
+        for eachEndpoint in response['Endpoints']:
+            if eachEndpoint['EndpointType'] == 'SOURCE' and (
+                    ('EngineName' in eachEndpoint and inputJson['SourceEndpointDetails'][
+                        'EngineName'] == eachEndpoint['EngineName']) and
+                    ('ServerName' in eachEndpoint and inputJson['SourceEndpointDetails'][
+                        'SourceUrl'] == eachEndpoint['ServerName']) and
+                    ('Port' in eachEndpoint and inputJson['SourceEndpointDetails']['Port'] ==
+                     eachEndpoint['Port']) and
+                    ('DatabaseName' in eachEndpoint and inputJson['SourceEndpointDetails'][
+                        'DatabaseName'] == eachEndpoint['DatabaseName']) and
+                    ('Status' in eachEndpoint and eachEndpoint['Status'] == 'active')):
+                isSourceExisting = True
+                existing_source_arn.append(eachEndpoint['EndpointArn'])
+            elif eachEndpoint['EndpointType'] == 'TARGET' and (
+                    ('EngineName' in eachEndpoint and inputJson['TargetEndpointDetails'][
+                        'EngineName'] == eachEndpoint['EngineName']) and
+                    ('ServerName' in eachEndpoint and inputJson['TargetEndpointDetails'][
+                        'TargetUrl'] == eachEndpoint['ServerName']) and
+                    ('Port' in eachEndpoint and inputJson['TargetEndpointDetails']['Port'] ==
+                     eachEndpoint['Port']) and
+                    ('DatabaseName' in eachEndpoint and inputJson['TargetEndpointDetails'][
+                        'DatabaseName'] == eachEndpoint['DatabaseName']) and
+                    ('Status' in eachEndpoint and eachEndpoint['Status'] == 'active')):
+                isTargetExisting = True
+                existing_target_arn.append(eachEndpoint['EndpointArn'])
+        if marker:
+            response = dmsClient.describe_endpoints(Marker=marker)
+            marker = response.get('Marker', None)
+        else:
+            break
     if isSourceExisting and isTargetExisting:
         replicationTasksResponse = dmsClient.describe_replication_tasks(
             Filters=[{'Name': 'endpoint-arn', 'Values': existing_source_arn}])

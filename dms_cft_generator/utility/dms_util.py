@@ -1,7 +1,5 @@
 import copy
 
-import botocore
-
 from .credentials_util import CredentialsUtil
 from .generic_util import *
 
@@ -19,17 +17,30 @@ def parse_dms_tags_dict(tags_dict):
 
 
 def get_appropriate_replication_instance(tags_dict, credentials: CredentialsUtil):
-    # TODO: Handle Marker logic
-    # TODO: Handle no instance found
     try:
         defaultReplicationInstance = "arn:aws:dms:us-east-1:464420198474:rep:6V4B6NMHFAN3HEDPL6ZODO6VXA"
         dmsClient = credentials.get_session().client('dms')
         replicationInstanceResponse = dmsClient.describe_replication_instances()
-        for replicationInstance in replicationInstanceResponse['ReplicationInstances']:
-            tagsResponse = dmsClient.list_tags_for_resource(ResourceArn=replicationInstance['ReplicationInstanceArn'])
-            for eachTag in tagsResponse['TagList']:
-                if eachTag['Key'] == "ApplicationShortName" and eachTag['Value'] == tags_dict['ApplicationShortName']:
-                    defaultReplicationInstance = replicationInstance['ReplicationInstanceArn']
+        marker = replicationInstanceResponse.get('Marker', None)
+        while True:
+            for replicationInstance in replicationInstanceResponse['ReplicationInstances']:
+                tagsResponse = dmsClient.list_tags_for_resource(
+                    ResourceArn=replicationInstance['ReplicationInstanceArn'])
+                for eachTag in tagsResponse['TagList']:
+                    if eachTag['Key'] == "ApplicationShortName" and eachTag['Value'] == tags_dict[
+                        'ApplicationShortName']:
+                        defaultReplicationInstance = replicationInstance['ReplicationInstanceArn']
+            if marker:
+                replicationInstanceResponse = dmsClient.describe_replication_instances(Marker=marker)
+                marker = replicationInstanceResponse.get('Marker', None)
+            else:
+                break
+
+        if defaultReplicationInstance == "arn:aws:dms:us-east-1:464420198474:rep:6V4B6NMHFAN3HEDPL6ZODO6VXA":
+            print("Did not find any Replication Instance with tags ApplicationShortName: %s" % tags_dict[
+                'ApplicationShortName'])
+            # TODO: Change this print to throw error
+            print("Should throw an exception here")
         return defaultReplicationInstance
     except Exception as e:
         print("Failed to get appropriate replication instance with error: " + str(e))
@@ -44,7 +55,8 @@ def updateReplicationTaskDetailsInTemplate(inputJson, templateJson, tags_dict, c
     templateJson['Parameters']['ReplicationInstanceARN']['Default'] = get_appropriate_replication_instance(
         parsed_tags_dict, credentials)
     templateJson['Resources']['ReplicationTask']['Properties']['ReplicationTaskIdentifier'] = \
-        parsed_tags_dict['ApplicationShortName'] + "-" + random_string(8) + "-task"
+        parsed_tags_dict['ApplicationShortName'] + "-" + parsed_tags_dict['AppCode'] + "-" + \
+        inputJson['SourceEndpointDetails']['DatabaseName'] + "-" + random_string(6)
     templateJson['Resources']['ReplicationTask']['Properties']['Tags'] = tags_dict
 
 

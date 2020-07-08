@@ -1,6 +1,7 @@
 import os
-import boto3
 import subprocess
+
+import boto3
 
 
 class CredentialsUtil:
@@ -28,7 +29,6 @@ class CredentialsUtil:
         return self.session
 
     def get_credentials_from_secrets_manager(self, secret_type, inputJson, parsed_tags_dict, environment):
-        # TODO: change how we build the string
         secret_name = "/" + parsed_tags_dict['ApplicationShortName'] + "/" + inputJson['TargetEndpointDetails'][
             'RDSInstanceIdentifier'] + "-" + parsed_tags_dict['ApplicationShortName'] + "_dbo" + environment
         if secret_type == "username":
@@ -54,5 +54,4 @@ class CredentialsUtil:
                 print("Unable to retrieve password from PAM. Returning default value")
                 return "adminpassword"
         elif secret_type == "username":
-            # return "dms_" + app_code
-            return 'admin'
+            return "dms_" + app_code

@@ -5,10 +5,10 @@ from os import path
 
 import botocore
 
-from .utility.generic_util import mergeInputFiles, delete_cloudformation_stack
 from .utility.credentials_util import CredentialsUtil
 from .utility.dms_util import process_existing_endpoints_template, validate_input_json, \
     generate_dms_tags_dict, process_new_endpoints_template, parse_dms_tags_dict
+from .utility.generic_util import mergeInputFiles, delete_cloudformation_stack
 
 
 def deploy_cloudformation(templateJson, session, source_db_password):
@@ -18,7 +18,7 @@ def deploy_cloudformation(templateJson, session, source_db_password):
     replicationTaskIdentifier = templateJson['Resources']['ReplicationTask']['Properties']['ReplicationTaskIdentifier']
     stackName = replicationTaskIdentifier + "-DMS-stack"
     # Create cloud formation stack
-    print("Creating stack with password parameter: " + source_db_password)
+    print("Creating stack with password parameter length: " + str(len(source_db_password)))
     response = cloudFormationClient.create_stack(StackName=stackName, TemplateBody=json.dumps(templateJson),
                                                  TimeoutInMinutes=10, Capabilities=['CAPABILITY_IAM'],
                                                  Parameters=[{'ParameterKey': 'PasswordFromPAM',
@@ -41,7 +41,6 @@ def deploy_cloudformation(templateJson, session, source_db_password):
                     'ReplicationTasks'][0]['ReplicationTaskArn']
                 dmsClient.start_replication_task(ReplicationTaskArn=replicationTaskArn,
                                                  StartReplicationTaskType='start-replication')
-                # TODO: Assuming task will change to Running state after 60 secs of start. Confirm this assumption
                 print("Sleeping %d secs for replication task to start" % sleep_time)
                 time.sleep(sleep_time)
                 while True:
@@ -59,7 +58,6 @@ def deploy_cloudformation(templateJson, session, source_db_password):
                         break
                 break
             except botocore.exceptions.ClientError as error:
-                # TODO: Delete stack if start replication task failed?
                 print("ERROR while starting replication task. Error: %s" % error.response['Error'])
                 delete_cloudformation_stack(cloudFormationClient, stackName)
                 break
@@ -69,6 +67,7 @@ def deploy_cloudformation(templateJson, session, source_db_password):
         else:
             print("Error creating cloudformation stack: %s for replicationTask: %s. Stack status is %s" % (
                 stackName, replicationTaskIdentifier, stackStatus))
+            delete_cloudformation_stack(cloudFormationClient, stackName)
             break
 
 
@@ -88,7 +87,6 @@ if __name__ == '__main__':
                         help='Application Short Name', metavar='')
     parser.add_argument('--appCode', action="store", dest="appCode", help='Application Code', metavar='')
     parser.add_argument('--assetId', action="store", dest="assetId", help='AssetId', metavar='')
-    parser.add_argument('--certificatePath', action="store", dest="certificatePath", help='certificatePath', metavar='')
 
     ASSUME_ROLE = parser.parse_args().assumeRole
     CREDENTIALS_PROFILE = parser.parse_args().credentialsProfile
@@ -98,7 +96,7 @@ if __name__ == '__main__':
     APPLICATION_SHORT_NAME = parser.parse_args().applicationShortName
     APP_CODE = parser.parse_args().appCode
     ASSET_ID = parser.parse_args().assetId
-    CERTIFICATE_PATH = parser.parse_args().certificatePath
+    CERTIFICATE_PATH = parser.parse_args().inputPath
 
     if (not ASSUME_ROLE and not CREDENTIALS_PROFILE) or not INPUT_PATH or not OUTPUT_CFT_PATH or not ENVIRONMENT \
             or not APPLICATION_SHORT_NAME or not APP_CODE or not ASSET_ID:
